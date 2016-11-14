@@ -14,11 +14,31 @@ export function activate(context: vscode.ExtensionContext) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('extension.sayHello', () => {
-        // The code you place here will be executed every time your command is executed
+    let disposable = vscode.commands.registerCommand('peachpie.createProject', async () => {
+        let rootPath = vscode.workspace.rootPath;
+        if (rootPath == null) {
+            vscode.window.showErrorMessage("A folder must be opened in Explorer panel");
+        }
 
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello World!');
+        let projectJsonUri = vscode.Uri.parse(`untitled:${rootPath}\\project.json`);
+        let document = await vscode.workspace.openTextDocument(projectJsonUri);
+
+        let projectJsonContent = JSON.stringify(defaultProjectJson, null, 4);
+        let projectJsonEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectJsonContent);
+        
+        let wsEdit = new vscode.WorkspaceEdit();
+        wsEdit.set(projectJsonUri, [ projectJsonEdit ]);
+        let success = await vscode.workspace.applyEdit(wsEdit);
+        
+        if (success) {
+            success = await document.save();
+        }
+
+        if (success) {
+            vscode.window.showInformationMessage("Peachpie PHP project was successfully created");
+        } else {
+            vscode.window.showErrorMessage("Error in creating Peachpie PHP project");
+        }
     });
 
     context.subscriptions.push(disposable);
