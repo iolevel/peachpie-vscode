@@ -3,6 +3,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+import { defaultProjectJson } from './defaults';
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -21,18 +23,15 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         let projectJsonUri = vscode.Uri.parse(`untitled:${rootPath}\\project.json`);
-        let document = await vscode.workspace.openTextDocument(projectJsonUri);
-
+        let projectJsonDocument = await vscode.workspace.openTextDocument(projectJsonUri);
         let projectJsonContent = JSON.stringify(defaultProjectJson, null, 4);
         let projectJsonEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectJsonContent);
-        
+    
         let wsEdit = new vscode.WorkspaceEdit();
         wsEdit.set(projectJsonUri, [ projectJsonEdit ]);
         let success = await vscode.workspace.applyEdit(wsEdit);
         
-        if (success) {
-            success = await document.save();
-        }
+        success = success && await vscode.workspace.saveAll(true);
 
         if (success) {
             vscode.window.showInformationMessage("Peachpie PHP project was successfully created");

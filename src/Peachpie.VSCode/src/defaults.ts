@@ -1,4 +1,6 @@
-var defaultProjectJson =
+'use strict';
+
+export var defaultProjectJson =
 {
   "version": "1.0.0-*",
   "description": "PHP project compiled into .NET by Peachpie",
@@ -24,4 +26,4 @@ var defaultProjectJson =
       }
     }
   }
-}
+};
