@@ -11,7 +11,7 @@ export var defaultProjectJson =
     "debugType": "portable"
   },
   "dependencies": {
-    "Peachpie.App": "*"
+    "Peachpie.App": "0.3.0-*"
   },
   "tools": {
     "Peachpie.Compiler.Tools": "0.3.0-*"
@@ -26,4 +26,22 @@ export var defaultProjectJson =
       }
     }
   }
+};
+
+export var defaultTasksJson =
+{
+    "version": "0.1.0",
+    "command": "dotnet",
+    "isShellCommand": true,
+    "args": [],
+    "tasks": [
+        {
+            "taskName": "build",
+            "args": [
+                "${workspaceRoot}\\project.json"
+            ],
+            "isBuildCommand": true,
+            "problemMatcher": "$msCompile"
+        }
+    ]
 };

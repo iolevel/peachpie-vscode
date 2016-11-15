@@ -3,7 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-import { defaultProjectJson } from './defaults';
+import { defaultProjectJson, defaultTasksJson } from './defaults';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -22,25 +22,66 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showErrorMessage("A folder must be opened in Explorer panel");
         }
 
-        let projectJsonUri = vscode.Uri.parse(`untitled:${rootPath}\\project.json`);
-        let projectJsonDocument = await vscode.workspace.openTextDocument(projectJsonUri);
-        let projectJsonContent = JSON.stringify(defaultProjectJson, null, 4);
-        let projectJsonEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectJsonContent);
-    
-        let wsEdit = new vscode.WorkspaceEdit();
-        wsEdit.set(projectJsonUri, [ projectJsonEdit ]);
-        let success = await vscode.workspace.applyEdit(wsEdit);
-        
-        success = success && await vscode.workspace.saveAll(true);
-
-        if (success) {
-            vscode.window.showInformationMessage("Peachpie PHP project was successfully created");
+        let isProjectJsonSuccess = await createProjectJson(rootPath);
+        if (isProjectJsonSuccess) {
+            vscode.window.showInformationMessage(".NET Core project.json configuration file was successfully created");
         } else {
-            vscode.window.showErrorMessage("Error in creating Peachpie PHP project");
+            vscode.window.showErrorMessage("Error in creating .NET Core project.json configuration file");
+            return;
+        }
+
+        let isTasksSuccess = await configureTasks();
+        if (isTasksSuccess) {
+            vscode.window.showInformationMessage("Build tasks successfully configured");
+        } else {
+            vscode.window.showErrorMessage("Error in configuring the build tasks");
         }
     });
 
     context.subscriptions.push(disposable);
+}
+
+// Create project.json file in the opened root folder
+async function createProjectJson(rootPath: string): Promise<boolean> {
+    let projectJsonUri = vscode.Uri.parse(`untitled:${rootPath}\\project.json`);
+    let projectJsonDocument = await vscode.workspace.openTextDocument(projectJsonUri);
+    let projectJsonContent = JSON.stringify(defaultProjectJson, null, 4);
+    let projectJsonEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectJsonContent);
+    
+    let wsEdit = new vscode.WorkspaceEdit();
+    wsEdit.set(projectJsonUri, [ projectJsonEdit ]);
+    let isSuccess = await vscode.workspace.applyEdit(wsEdit);
+
+    if (isSuccess) {
+        isSuccess = await vscode.workspace.saveAll(true);
+    }
+
+    return isSuccess;
+}
+
+// Update tasks configuration, resulting of adding or replacing .vscode/tasks.json
+async function configureTasks(): Promise<boolean> {
+    let tasksConfig = vscode.workspace.getConfiguration("tasks");
+    if (tasksConfig == null) {
+        console.error("Unable to load tasks configuration");
+        return false;
+    }
+
+    try {
+        for (var key in defaultTasksJson) {
+            if (defaultTasksJson.hasOwnProperty(key)) {
+                var element = defaultTasksJson[key];
+
+                // Not defined in the Typescript interface, therefore called this way
+                await tasksConfig['update'].call(tasksConfig, key, element);
+            }
+        }
+    } catch (error) {
+        console.error("Error in configuring the build tasks: %s", (<Error>error).message);
+        return false;
+    }
+
+    return true;
 }
 
 // this method is called when your extension is deactivated
