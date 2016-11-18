@@ -3,7 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-import { defaultProjectJson, defaultTasksJson } from './defaults';
+import { defaultProjectJson, defaultTasksJson, defaultLaunchJson } from './defaults';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        let isTasksSuccess = await configureTasks();
+        let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
         if (isTasksSuccess) {
             vscode.window.showInformationMessage("Build tasks successfully configured");
         } else {
@@ -59,18 +59,27 @@ async function createProjectJson(rootPath: string): Promise<boolean> {
     return isSuccess;
 }
 
-// Update tasks configuration, resulting of adding or replacing .vscode/tasks.json
+// Overwrite tasks configuration, resulting in adding or replacing .vscode/tasks.json
 async function configureTasks(): Promise<boolean> {
-    let tasksConfig = vscode.workspace.getConfiguration("tasks");
+    return overwriteConfiguration("tasks", defaultTasksJson);
+}
+
+// Overwrite launch configuration, resulting in adding or replacing .vscode/tasks.json
+async function configureLaunch(): Promise<boolean> {
+    return overwriteConfiguration("launch", defaultLaunchJson);
+}
+
+async function overwriteConfiguration(section: string, configuration: any): Promise<boolean> {
+    let tasksConfig = vscode.workspace.getConfiguration(section);
     if (tasksConfig == null) {
-        console.error("Unable to load tasks configuration");
+        console.error(`Unable to load ${section} configuration`);
         return false;
     }
 
     try {
-        for (var key in defaultTasksJson) {
-            if (defaultTasksJson.hasOwnProperty(key)) {
-                var element = defaultTasksJson[key];
+        for (var key in configuration) {
+            if (configuration.hasOwnProperty(key)) {
+                var element = configuration[key];
 
                 // Not defined in the Typescript interface, therefore called this way
                 await tasksConfig['update'].call(tasksConfig, key, element);

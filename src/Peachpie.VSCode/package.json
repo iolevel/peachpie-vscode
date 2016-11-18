@@ -18,7 +18,17 @@
         "commands": [{
             "command": "peachpie.createProject",
             "title": "Peachpie: Create Project"
-        }]
+        }],
+        "debuggers" : [
+            {
+                "type": "coreclr",
+                "enableBreakpointsFor": {
+                    "languageIds": [
+                        "php"
+                    ]
+                }
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
