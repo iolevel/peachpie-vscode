@@ -3,6 +3,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+import * as cp from 'child_process';
+
 import { defaultProjectJson, defaultTasksJson, defaultLaunchJson } from './defaults';
 
 // this method is called when your extension is activated
@@ -35,6 +37,24 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage("Build tasks successfully configured");
         } else {
             vscode.window.showErrorMessage("Error in configuring the build tasks");
+        }
+
+        await execChildProcess("dotnet restore", rootPath)
+        .catch((error) => {
+            vscode.window.showErrorMessage("For building and executing, Peachpie needs .NET Core CLI tools to be available on the path. Make sure they are installed properly.");
+        }).then((data: string) => {
+            if (data.includes("Restore completed in")) {
+                vscode.window.showInformationMessage("Project dependencies were successfully installed");
+            } else {
+                vscode.window.showErrorMessage("Error in installing project dependencies");
+            }
+        });
+
+        let csharpExtension = vscode.extensions.getExtension("ms-vscode.csharp");
+        if (csharpExtension == null) {
+            vscode.window.showErrorMessage("Install C# extension powered by Omnisharp in order to enable the debugging of Peachpie projects");            
+        } else {
+            csharpExtension.activate();
         }
     });
 
@@ -91,6 +111,23 @@ async function overwriteConfiguration(section: string, configuration: any): Prom
     }
 
     return true;
+}
+
+// Taken from omnisharp-vscode
+function execChildProcess(command: string, workingDirectory: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        cp.exec(command, { cwd: workingDirectory, maxBuffer: 500 * 1024 }, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+            }
+            else if (stderr && stderr.length > 0) {
+                reject(new Error(stderr));
+            }
+            else {
+                resolve(stdout);
+            }
+        });
+    });
 }
 
 // this method is called when your extension is deactivated
