@@ -3,67 +3,119 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+import * as path from 'path';
+import * as fs from 'fs';
 import * as cp from 'child_process';
 
 import { defaultProjectJson, defaultTasksJson, defaultLaunchJson } from './defaults';
 
+let channel: vscode.OutputChannel;
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "peachpie-vscode" is now active!');
+    channel = vscode.window.createOutputChannel("Peachpie");
+    channel.appendLine("Peachpie extension was activated\n");
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('peachpie.createProject', async () => {
-        let rootPath = vscode.workspace.rootPath;
-        if (rootPath == null) {
-            vscode.window.showErrorMessage("A folder must be opened in Explorer panel");
-        }
+    let createProjectCommand = vscode.commands.registerCommand('peachpie.createProject', async () => {
+        // We will write successes to the output channel. In case of an error, we will display it also
+        // in the window and skip the remaining operations.
+        channel.show(true);
 
-        let isProjectJsonSuccess = await createProjectJson(rootPath);
-        if (isProjectJsonSuccess) {
-            vscode.window.showInformationMessage(".NET Core project.json configuration file was successfully created");
+        // Check the opened folder
+        let rootPath = vscode.workspace.rootPath;
+        if (rootPath != null) {
+            showInfo(`Creating Peachpie project in ${rootPath}\n`);
         } else {
-            vscode.window.showErrorMessage("Error in creating .NET Core project.json configuration file");
+            showError("A folder must be opened in Explorer panel\n");
             return;
         }
 
-        let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
-        if (isTasksSuccess) {
-            vscode.window.showInformationMessage("Build tasks successfully configured");
+        // Create project.json
+        let projectJsonPath = path.join(rootPath, "project.json");
+        if (fs.existsSync(projectJsonPath)) {
+            showInfo(".NET Core project.json configuration file already exists\n");            
         } else {
-            vscode.window.showErrorMessage("Error in configuring the build tasks");
+            showInfo("Creating .NET Core project.json configuration file...");
+            let isProjectJsonSuccess = await createProjectJson(projectJsonPath);
+            if (isProjectJsonSuccess) {
+                showInfo(".NET Core project.json configuration file was successfully created\n");
+            } else {
+                showError("Error in creating .NET Core project.json configuration file\n");
+                return;
+            }
         }
 
-        await execChildProcess("dotnet restore", rootPath)
-        .catch((error) => {
-            vscode.window.showErrorMessage("For building and executing, Peachpie needs .NET Core CLI tools to be available on the path. Make sure they are installed properly.");
-        }).then((data: string) => {
-            if (data.includes("Restore completed in")) {
-                vscode.window.showInformationMessage("Project dependencies were successfully installed");
-            } else {
-                vscode.window.showErrorMessage("Error in installing project dependencies");
-            }
-        });
+        // Create or update .tasks.json and .launch.json
+        showInfo("Configuring build and debugging in .tasks.json and .launch.json...");
+        let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
+        if (isTasksSuccess) {
+            showInfo("Build tasks successfully configured\n");
+        } else {
+            showError("Error in configuring the build tasks\n");
+            return;
+        }
 
+        // Run dotnet restore
+        let isError = false;
+        showInfo("Running dotnet restore to install Peachpie compiler and libraries...");
+        await execChildProcess("dotnet restore", rootPath)
+        .then((data: string) => {
+            showInfo(data);
+            if (data.includes("Restore completed in")) {
+                showInfo("Project dependencies were successfully installed\n");
+            } else {
+                showError("Error in installing project dependencies\n");
+                isError = true;
+            }
+        })
+        .catch((error) => {
+            showError("For building and executing, Peachpie needs .NET Core CLI tools to be available on the path. Make sure they are installed properly.\n");
+            isError = true;
+        });
+        if (isError) {
+            return;
+        }
+
+        // Activate Omnisharp C# extension for debugging
         let csharpExtension = vscode.extensions.getExtension("ms-vscode.csharp");
         if (csharpExtension == null) {
-            vscode.window.showErrorMessage("Install C# extension powered by Omnisharp in order to enable the debugging of Peachpie projects");            
+            showError("Install OmniSharp C# extension in order to enable the debugging of Peachpie projects\n");
+            return;            
         } else {
-            csharpExtension.activate();
+            if (csharpExtension.isActive) {
+                showInfo("OmniSharp C# extension is already active\n");
+            } else {
+                showInfo("Activating OmniSharp C# extension to take care of the project structure and debugging...\n");
+                await csharpExtension.activate();
+            }
+            showInfo("Peachpie project was successfully configured", true);
         }
     });
 
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(createProjectCommand, channel);
+}
+
+function showInfo(message: string, doShowWindow = false) {
+    channel.appendLine(message);    
+    if (doShowWindow) {
+        vscode.window.showInformationMessage(message);
+    }
+}
+
+function showError(message: string, doShowWindow = true) {
+    channel.appendLine(message);
+    if (doShowWindow) {
+        vscode.window.showErrorMessage(message);
+    }
 }
 
 // Create project.json file in the opened root folder
-async function createProjectJson(rootPath: string): Promise<boolean> {
-    let projectJsonUri = vscode.Uri.parse(`untitled:${rootPath}\\project.json`);
+async function createProjectJson(filePath: string): Promise<boolean> {
+    let projectJsonUri = vscode.Uri.parse(`untitled:${filePath}`);
     let projectJsonDocument = await vscode.workspace.openTextDocument(projectJsonUri);
     let projectJsonContent = JSON.stringify(defaultProjectJson, null, 4);
     let projectJsonEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectJsonContent);
@@ -92,7 +144,7 @@ async function configureLaunch(): Promise<boolean> {
 async function overwriteConfiguration(section: string, configuration: any): Promise<boolean> {
     let tasksConfig = vscode.workspace.getConfiguration(section);
     if (tasksConfig == null) {
-        console.error(`Unable to load ${section} configuration`);
+        channel.appendLine(`Unable to load ${section} configuration`);
         return false;
     }
 
@@ -106,7 +158,7 @@ async function overwriteConfiguration(section: string, configuration: any): Prom
             }
         }
     } catch (error) {
-        console.error("Error in configuring the build tasks: %s", (<Error>error).message);
+        channel.appendLine("Error in configuring the build tasks: " + (<Error>error).message);
         return false;
     }
 
