@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (rootPath != null) {
             showInfo(`Creating Peachpie project in ${rootPath}\n`);
         } else {
-            showError("A folder must be opened in Explorer panel\n");
+            showError("A folder must be opened in the Explorer panel\n");
             return;
         }
 
