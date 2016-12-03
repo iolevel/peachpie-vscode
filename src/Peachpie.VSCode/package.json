@@ -1,14 +1,14 @@
 {
-    "name": "peachpie.vscode",
+    "name": "peachpie-vscode",
     "displayName": "Peachpie for Visual Studio Code",
     "description": "Visual Studio Code extension for Peachpie - the PHP compiler for .NET and .NET Core.",
-    "icon": "images/peachpie-icon.png",
+    "icon": "icons/peachpie-icon.png",
     "version": "0.3.0",
     "publisher": "iolevel",
-    "preview": "true",
+    "preview": true,
     "license": "Apache 2.0",
     "galleryBanner": {
-		"color": "#FFA500",
+		"color": "#FFAC00",
 		"theme": "light"
     },
     "homepage": "http://peachpie.io",
@@ -20,7 +20,7 @@
         "vscode": "^1.5.0"
     },
     "categories": [
-        "Languages", "Snippets", "Debuggers", "Productivity"
+        "Languages", "Snippets", "Debuggers"
     ],
     "keywords": [
         "Peachpie", "coreclr", "dotnet", "php"
