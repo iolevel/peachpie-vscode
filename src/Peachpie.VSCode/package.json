@@ -2,8 +2,20 @@
     "name": "peachpie.vscode",
     "displayName": "Peachpie for Visual Studio Code",
     "description": "Visual Studio Code extension for Peachpie - the PHP compiler for .NET and .NET Core.",
+    "icon": "images/peachpie-icon.png",
     "version": "0.3.0",
     "publisher": "iolevel",
+    "preview": "true",
+    "license": "Apache 2.0",
+    "galleryBanner": {
+		"color": "#FFA500",
+		"theme": "light"
+    },
+    "homepage": "http://peachpie.io",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/iolevel/peachpie"
+    },
     "engines": {
         "vscode": "^1.5.0"
     },
@@ -33,6 +45,18 @@
             }
         ]
     },
+    "badges": [
+		{
+			"url": "https://api.travis-ci.org/iolevel/peachpie.svg?branch=master",
+			"href": "https://travis-ci.org/iolevel/peachpie",
+			"description": "Build Status"
+		}
+        {
+            "url": "https://badges.gitter.im/iolevel/peachpie.svg",
+			"href": "https://gitter.im/iolevel/peachpie?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge",
+			"description": "Chat on Gitter"
+        }
+	],
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
         "compile": "tsc -watch -p ./",
