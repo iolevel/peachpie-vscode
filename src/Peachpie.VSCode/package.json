@@ -24,7 +24,7 @@
         }],
         "debuggers" : [
             {
-                "type": "coreclr",
+                "type": "dummy",
                 "enableBreakpointsFor": {
                     "languageIds": [
                         "php"
