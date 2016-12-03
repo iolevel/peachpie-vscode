@@ -1,6 +1,6 @@
 <br>
 <p align="left">
-<img src="https://pbs.twimg.com/media/CoXRwvWUAAA7Wwq.png" width="250"/>
+<img src="/src/Peachpie.VSCode/images/peachpie-round.png" width="250"/>
 </p>
 
 # Peachpie Visual Studio Code Extension
