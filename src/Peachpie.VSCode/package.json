@@ -1,14 +1,17 @@
 {
-    "name": "peachpie-vscode",
-    "displayName": "Peachpie.VSCode",
-    "description": "Integration of Peachpie - The PHP Compiler and Runtime for .NET",
-    "version": "0.0.1",
+    "name": "peachpie.vscode",
+    "displayName": "Peachpie for Visual Studio Code",
+    "description": "Visual Studio Code extension for Peachpie - the PHP compiler for .NET and .NET Core.",
+    "version": "0.3.0",
     "publisher": "iolevel",
     "engines": {
         "vscode": "^1.5.0"
     },
     "categories": [
-        "Other"
+        "Languages", "Snippets", "Debuggers", "Productivity"
+    ],
+    "keywords": [
+        "Peachpie", "coreclr", "dotnet", "php"
     ],
     "activationEvents": [
         "onCommand:peachpie.createProject"
