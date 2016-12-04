@@ -8,3 +8,4 @@ images/**
 .gitignore
 tsconfig.json
 vsc-extension-quickstart.md
+publish.ps1
