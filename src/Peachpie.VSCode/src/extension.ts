@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 
 import { defaultProjectJson, defaultTasksJson, defaultLaunchJson } from './defaults';
+import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 
 let channel: vscode.OutputChannel;
 
@@ -16,6 +17,8 @@ let channel: vscode.OutputChannel;
 export function activate(context: vscode.ExtensionContext) {
     channel = vscode.window.createOutputChannel("Peachpie");
     channel.appendLine("Peachpie extension was activated\n");
+
+    let languageClientDisposable = startLanguageServer(context);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
@@ -96,7 +99,29 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(createProjectCommand, channel);
+    context.subscriptions.push(languageClientDisposable, createProjectCommand, channel);
+}
+
+function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposable {
+    // TODO: Handle the proper publishing of the executable
+    let serverPath = context.asAbsolutePath("../Peachpie.LanguageServer/bin/Debug/netcoreapp1.0/Peachpie.LanguageServer.dll");
+    let serverOptions: ServerOptions = {
+		run : { command: "dotnet", args: [ serverPath ] },
+        debug: { command: "dotnet", args: [ serverPath, "--debug" ] }
+	}
+
+    // Options to control the language client
+	let clientOptions: LanguageClientOptions = {
+		// Register the server for PHP documents
+		documentSelector: ['php'],
+		synchronize: {
+			// Notify the server about file changes to all the files in the workspace
+			fileEvents: vscode.workspace.createFileSystemWatcher('*')            
+		}
+	}
+
+    // Create the language client and start the server
+	return new LanguageClient('Peachpie Language Server', serverOptions, clientOptions).start();
 }
 
 function showInfo(message: string, doShowWindow = false) {
