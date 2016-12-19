@@ -113,11 +113,7 @@ function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposab
     // Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for PHP documents
-		documentSelector: ['php'],
-		synchronize: {
-			// Notify the server about file changes to all the files in the workspace
-			fileEvents: vscode.workspace.createFileSystemWatcher('*')            
-		}
+		documentSelector: ['php']
 	}
 
     // Create the language client and start the server
