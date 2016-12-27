@@ -28,7 +28,10 @@ namespace Peachpie.LanguageServer
                 {
                     case "initialize":
                         SendInitializationResponse(messageWriter, request);
-                        SendGreetingMessage(messageWriter);
+                        if (args.Contains("--debug"))
+                        {
+                            SendGreetingMessage(messageWriter);
+                        }
                         break;
                     case "textDocument/didOpen":
                         var openParams = request.Params.ToObject<DidOpenTextDocumentParams>();
@@ -66,9 +69,10 @@ namespace Peachpie.LanguageServer
 
         private static void SendGreetingMessage(MessageWriter messageWriter)
         {
+            int processId = Process.GetCurrentProcess().Id;
             var showMessageParams = new ShowMessageParams()
             {
-                Message = "Hello from Peachpie Language Server!",
+                Message = $"Hello from Peachpie Language Server! The ID of the process is {processId}",
                 // An information message
                 // TODO: Introduce an enum for this
                 Type = 3
