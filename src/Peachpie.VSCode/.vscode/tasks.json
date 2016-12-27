@@ -26,5 +26,5 @@
     "isWatching": false,
 
     // use the standard msCompile and tsc problem matchers to find compile problems in the output.
-    "problemMatcher": [ "$msCompile", "$tsc" ]
+    "problemMatcher": [ "$tsc", "$msCompile" ]
 }
