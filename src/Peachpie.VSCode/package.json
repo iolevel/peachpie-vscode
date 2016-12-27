@@ -66,8 +66,8 @@
         }
     ],
     "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
+        "vscode:prepublish": "dotnet publish ../Peachpie.LanguageServer --output out/server && tsc -p ./",
+        "compile": "dotnet publish ../Peachpie.LanguageServer --output out/server && tsc -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install"
     },
     "devDependencies": {

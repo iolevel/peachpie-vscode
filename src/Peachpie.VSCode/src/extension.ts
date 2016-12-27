@@ -104,7 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposable {
     // TODO: Handle the proper publishing of the executable
-    let serverPath = context.asAbsolutePath("../Peachpie.LanguageServer/bin/Debug/netcoreapp1.0/Peachpie.LanguageServer.dll");
+    let serverPath = context.asAbsolutePath("out/server/Peachpie.LanguageServer.dll");
     let serverOptions: ServerOptions = {
 		run : { command: "dotnet", args: [ serverPath ] },
         debug: { command: "dotnet", args: [ serverPath, "--debug" ] }
