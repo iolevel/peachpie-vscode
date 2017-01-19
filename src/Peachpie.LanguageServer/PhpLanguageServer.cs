@@ -1,4 +1,5 @@
-﻿using Peachpie.LanguageServer.Protocol;
+﻿using Newtonsoft.Json;
+using Peachpie.LanguageServer.Protocol;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -23,6 +24,10 @@ namespace Peachpie.LanguageServer
             while (true)
             {
                 var request = await _requestReader.ReadRequestAsync();
+                if (_options.IsDebug)
+                {
+                    SendLogMessage($"Received: {JsonConvert.SerializeObject(request)}");
+                }
 
                 switch (request.Method)
                 {
@@ -61,7 +66,6 @@ namespace Peachpie.LanguageServer
             _messageWriter.WriteResponse(request.Id, initializeResult);
         }
 
-
         private void SendGreetingMessage()
         {
             int processId = Process.GetCurrentProcess().Id;
@@ -73,6 +77,18 @@ namespace Peachpie.LanguageServer
                 Type = 3
             };
             _messageWriter.WriteNotification("window/showMessage", showMessageParams);
+        }
+
+        private void SendLogMessage(string text)
+        {
+            var logMessageParams = new LogMessageParams()
+            {
+                Message = text,
+                // A log message
+                // TODO: Introdue an enum for this
+                Type = 4
+            };
+            _messageWriter.WriteNotification("window/logMessage", logMessageParams);
         }
 
         private void SendMockDiagnostic(string uri, string text)
