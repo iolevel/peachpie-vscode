@@ -2,6 +2,7 @@
 using Peachpie.LanguageServer.Protocol;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Peachpie.LanguageServer
@@ -32,11 +33,13 @@ namespace Peachpie.LanguageServer
                 switch (request.Method)
                 {
                     case "initialize":
+                        var initializeParams = request.Params.ToObject<InitializeParams>();
                         SendInitializationResponse(request);
                         if (_options.IsDebug)
                         {
                             SendGreetingMessage();
                         }
+                        OpenFolder(initializeParams.RootPath);
                         break;
                     case "textDocument/didOpen":
                         var openParams = request.Params.ToObject<DidOpenTextDocumentParams>();
@@ -49,6 +52,23 @@ namespace Peachpie.LanguageServer
                     default:
                         break;
                 }
+            }
+        }
+
+        private void OpenFolder(string rootPath)
+        {
+            if (rootPath == null)
+            {
+                return;
+            }
+
+            // TODO: Determine the right suffixes by inspecting project.json
+            var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
+            foreach (var sourceFile in sourceFiles)
+            {
+                string uri = new Uri(sourceFile).ToString()         // For file:/// prefix and forward slashes
+                string sourceText = File.ReadAllText(sourceFile);
+                SendMockDiagnostic(uri, sourceText);
             }
         }
 
@@ -112,7 +132,7 @@ namespace Peachpie.LanguageServer
                         Severity = 2,
                         Code = "MOCK001",
                         Source = "peachpie",
-                        Message = "I have a bad feeling about this"
+                        Message = $"I have a bad feeling about this file ({uri})"
                     }
                 }
             };
