@@ -1,8 +1,13 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.CodeAnalysis;
+using Newtonsoft.Json;
+using Pchp.CodeAnalysis;
 using Peachpie.LanguageServer.Protocol;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Peachpie.LanguageServer
@@ -12,6 +17,8 @@ namespace Peachpie.LanguageServer
         private ServerOptions _options;
         private MessageReader _requestReader;
         private MessageWriter _messageWriter;
+
+        private HashSet<string> _filesWithParserErrors = new HashSet<string>();
 
         public PhpLanguageServer(ServerOptions options, MessageReader requestReader, MessageWriter messageWriter)
         {
@@ -43,11 +50,11 @@ namespace Peachpie.LanguageServer
                         break;
                     case "textDocument/didOpen":
                         var openParams = request.Params.ToObject<DidOpenTextDocumentParams>();
-                        SendMockDiagnostic(openParams.TextDocument.Uri, openParams.TextDocument.Text);
+                        // TODO: Decide how to handle opened files that are not in the current folder
                         break;
                     case "textDocument/didChange":
                         var changeParams = request.Params.ToObject<DidChangeTextDocumentParams>();
-                        SendMockDiagnostic(changeParams.TextDocument.Uri, changeParams.ContentChanges[0].Text);
+                        ProcessDocumentChanges(changeParams);
                         break;
                     default:
                         break;
@@ -66,9 +73,37 @@ namespace Peachpie.LanguageServer
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
             foreach (var sourceFile in sourceFiles)
             {
-                string uri = new Uri(sourceFile).ToString()         // For file:/// prefix and forward slashes
-                string sourceText = File.ReadAllText(sourceFile);
-                SendMockDiagnostic(uri, sourceText);
+                string uri = new Uri(sourceFile).ToString();         // For file:/// prefix and forward slashes
+                string text = File.ReadAllText(sourceFile);
+                UpdateFile(uri, text);
+            }
+        }
+
+        private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
+        {
+            // For now, only the full document synchronization works
+            string uri = changeParams.TextDocument.Uri;
+            string text = changeParams.ContentChanges[0].Text;
+            UpdateFile(uri, text);
+        }
+
+        private void UpdateFile(string uri, string text)
+        {
+            var syntaxTree = SyntaxFactory.ParseSyntaxTree(text, PhpParseOptions.Default, PhpParseOptions.Default, uri);
+            if (syntaxTree.Diagnostics.Length > 0)
+            {
+                _filesWithParserErrors.Add(uri);
+                SendDocumentDiagnostics(uri, syntaxTree.Diagnostics);
+            }
+            else
+            {
+                if (_filesWithParserErrors.Remove(uri))
+                {
+                    // If there were any errors previously, send an empty set to remove them
+                    SendDocumentDiagnostics(uri, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
+                }
+
+                // TODO: Add to the compilation
             }
         }
 
@@ -111,33 +146,50 @@ namespace Peachpie.LanguageServer
             _messageWriter.WriteNotification("window/logMessage", logMessageParams);
         }
 
-        private void SendMockDiagnostic(string uri, string text)
+        private void SendDocumentDiagnostics(string uri, IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
         {
-            int endLine = text.IndexOf('\n');
-            if (endLine == -1)
-            {
-                return;
-            }
-
             var diagnosticsParams = new PublishDiagnosticsParams()
             {
                 Uri = uri,
-                Diagnostics = new[]
-                {
-                    new Diagnostic()
+                Diagnostics = diagnostics
+                    .Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Hidden)
+                    .Select(diagnostic =>
+                    new Protocol.Diagnostic()
                     {
-                        Range = new Range(new Position(0, 0), new Position(0, endLine)),
-                        // Warning
-                        // TODO: Introduce an enum for this
-                        Severity = 2,
-                        Code = "MOCK001",
+                        Range = ConvertLocation(diagnostic.Location),
+                        Severity = ConvertSeverity(diagnostic.Severity),
+                        Code = diagnostic.Id,
                         Source = "peachpie",
-                        Message = $"I have a bad feeling about this file ({uri})"
-                    }
-                }
+                        Message = diagnostic.GetMessage()
+                    }).ToArray()
             };
 
             _messageWriter.WriteNotification("textDocument/publishDiagnostics", diagnosticsParams);
+        }
+
+        private static Range ConvertLocation(Location location)
+        {
+            var lineSpan = location.GetLineSpan();
+            return new Range(
+                new Position(lineSpan.StartLinePosition.Line, lineSpan.StartLinePosition.Character),
+                new Position(lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character));
+        }
+
+        private static int? ConvertSeverity(DiagnosticSeverity severity)
+        {
+            // TODO: Introduce an enum for this
+            switch (severity)
+            {
+                case DiagnosticSeverity.Error:
+                    return 1;
+                case DiagnosticSeverity.Warning:
+                    return 2;
+                case DiagnosticSeverity.Info:
+                    return 3;
+                case DiagnosticSeverity.Hidden:
+                default:
+                    return null;
+            }
         }
     }
 }
