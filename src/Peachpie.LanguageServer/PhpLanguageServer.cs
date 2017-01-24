@@ -89,7 +89,7 @@ namespace Peachpie.LanguageServer
 
         private void UpdateFile(string uri, string text)
         {
-            var syntaxTree = SyntaxFactory.ParseSyntaxTree(text, PhpParseOptions.Default, PhpParseOptions.Default, uri);
+            var syntaxTree = PhpSyntaxTree.ParseCode(text, PhpParseOptions.Default, PhpParseOptions.Default, uri);
             if (syntaxTree.Diagnostics.Length > 0)
             {
                 _filesWithParserErrors.Add(uri);
