@@ -1,5 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.DotNet.ProjectModel;
 using Newtonsoft.Json;
+using NuGet.Frameworks;
 using Pchp.CodeAnalysis;
 using Peachpie.LanguageServer.Protocol;
 using System;
@@ -14,10 +16,14 @@ namespace Peachpie.LanguageServer
 {
     internal class PhpLanguageServer
     {
+        private const string DefaultConfiguration = "Debug";
+        private static readonly NuGetFramework DefaultFramework = FrameworkConstants.CommonFrameworks.NetCoreApp10;
+
         private ServerOptions _options;
         private MessageReader _requestReader;
         private MessageWriter _messageWriter;
 
+        private PhpCompilation _compilation;
         private HashSet<string> _filesWithParserErrors = new HashSet<string>();
 
         public PhpLanguageServer(ServerOptions options, MessageReader requestReader, MessageWriter messageWriter)
@@ -68,6 +74,14 @@ namespace Peachpie.LanguageServer
             {
                 return;
             }
+
+            string projectFile = Path.Combine(rootPath, Project.FileName);
+            if (!File.Exists(projectFile))
+            {
+                return;
+            }
+
+            this._compilation = CreateCompilationFromProject(projectFile);
 
             // TODO: Determine the right suffixes by inspecting project.json
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
@@ -165,6 +179,29 @@ namespace Peachpie.LanguageServer
             };
 
             _messageWriter.WriteNotification("textDocument/publishDiagnostics", diagnosticsParams);
+        }
+
+        private static PhpCompilation CreateCompilationFromProject(string projectFile)
+        {
+            var projectContext = ProjectContext.Create(projectFile, DefaultFramework);
+            var exporter = projectContext.CreateExporter(DefaultConfiguration);
+            var libraryExports = exporter.GetDependencies().ToArray();
+            var metadataReferences = libraryExports
+                .SelectMany(lib => lib.CompilationAssemblies)
+                .Select(asset => MetadataReference.CreateFromFile(asset.ResolvedPath))
+                .ToArray();
+            var options = new PhpCompilationOptions(
+                outputKind: OutputKind.DynamicallyLinkedLibrary,
+                baseDirectory: projectContext.ProjectDirectory,
+                sdkDirectory: null);
+
+            var compilation = PhpCompilation.Create(
+                projectContext.ProjectFile.Name,
+                ImmutableArray<SyntaxTree>.Empty,
+                metadataReferences,
+                options);
+
+            return compilation;
         }
 
         private static Range ConvertLocation(Location location)
