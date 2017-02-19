@@ -32,9 +32,15 @@ Peachpie compiler is a work in progress, and thus many functionalities are not y
 
 ## Release Notes
 
+### 0.5.0
+
+- New project refers to Peachpie 0.5.0
+- Syntax errors
+- Code Analysis diagnostics
+
 ### 0.3.0
 
-Initial release
+- Initial release
 
 -----------------------------------------------------------------------------------------------------------
 
