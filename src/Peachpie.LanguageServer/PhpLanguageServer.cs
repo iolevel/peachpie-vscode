@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.DotNet.ProjectModel;
 using Newtonsoft.Json;
-using NuGet.Frameworks;
 using Pchp.CodeAnalysis;
 using Peachpie.LanguageServer.Protocol;
 using System;
@@ -16,9 +15,6 @@ namespace Peachpie.LanguageServer
 {
     internal class PhpLanguageServer
     {
-        private const string DefaultConfiguration = "Debug";
-        private static readonly NuGetFramework DefaultFramework = FrameworkConstants.CommonFrameworks.NetCoreApp10;
-
         private const string ParserDiagnosticSource = "pchpp";
         private const string CompilerDiagnosticSource = "pchpc";
 
@@ -81,7 +77,7 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            rootPath = NormalizePath(rootPath);
+            rootPath = PathUtils.NormalizePath(rootPath);
 
             string projectFile = Path.Combine(rootPath, Project.FileName);
             if (!File.Exists(projectFile))
@@ -91,14 +87,19 @@ namespace Peachpie.LanguageServer
 
             _rootPath = rootPath;
 
-            var compilation = CreateCompilationFromProject(projectFile);
+            var compilation = ProjectUtils.TryCreateCompilationFromProject(projectFile);
+            if (compilation == null)
+            {
+                return;
+            }
+
             _diagnosticBroker.UpdateCompilation(compilation);
 
             // TODO: Determine the right suffixes by inspecting project.json
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
             foreach (var sourceFile in sourceFiles)
             {
-                string path = NormalizePath(sourceFile);
+                string path = PathUtils.NormalizePath(sourceFile);
                 string text = File.ReadAllText(sourceFile);
                 UpdateFile(path, text);
             }
@@ -107,7 +108,7 @@ namespace Peachpie.LanguageServer
         private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
         {
             // For now, only the full document synchronization works
-            string path = NormalizePath(changeParams.TextDocument.Uri);
+            string path = PathUtils.NormalizePath(changeParams.TextDocument.Uri);
 
             // Do not care about the documents outside of the current folder if it's opened
             if (_rootPath != null && !path.StartsWith(_rootPath))
@@ -231,53 +232,6 @@ namespace Peachpie.LanguageServer
             };
 
             _messageWriter.WriteNotification("textDocument/publishDiagnostics", diagnosticsParams);
-        }
-
-        private static PhpCompilation CreateCompilationFromProject(string projectFile)
-        {
-            var projectContext = ProjectContext.Create(projectFile, DefaultFramework);
-            var exporter = projectContext.CreateExporter(DefaultConfiguration);
-            var libraryExports = exporter.GetDependencies().ToArray();
-            var metadataReferences = libraryExports
-                .SelectMany(lib => lib.CompilationAssemblies)
-                .Select(asset => MetadataReference.CreateFromFile(asset.ResolvedPath))
-                .ToArray();
-            var options = new PhpCompilationOptions(
-                outputKind: OutputKind.DynamicallyLinkedLibrary,
-                baseDirectory: NormalizePath(projectContext.ProjectDirectory),
-                sdkDirectory: null);
-
-            var compilation = PhpCompilation.Create(
-                projectContext.ProjectFile.Name,
-                ImmutableArray<PhpSyntaxTree>.Empty,
-                metadataReferences,
-                options);
-
-            return compilation;
-        }
-
-        private static string NormalizePath(string path)
-        {
-            if (path.StartsWith("file:///"))
-            {
-                var uri = new Uri(path);
-                path = Uri.UnescapeDataString(uri.AbsolutePath);
-
-                // Fix /c:/...
-                if (path.Length >= 3 && path[0] == '/' && path[2] == ':')
-                {
-                    path = path.Substring(1);
-                }
-            }
-
-            path = path.Replace('\\', '/');
-
-            if (path.EndsWith("/"))
-            {
-                path = path.Substring(0, path.Length - 1);
-            }
-
-            return path;
         }
 
         private static Range ConvertLocation(Location location)
