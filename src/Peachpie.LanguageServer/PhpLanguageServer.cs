@@ -77,23 +77,14 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            rootPath = PathUtils.NormalizePath(rootPath);
-
-            string projectFile = Path.Combine(rootPath, Project.FileName);
-            if (!File.Exists(projectFile))
-            {
-                return;
-            }
-
-            _rootPath = rootPath;
-
-            var compilation = ProjectUtils.TryCreateCompilationFromProject(projectFile);
+            var compilation = ProjectUtils.TryGetFirstPhpProject(rootPath, out rootPath);
             if (compilation == null)
             {
                 return;
             }
 
             _diagnosticBroker.UpdateCompilation(compilation);
+            _rootPath = PathUtils.NormalizePath(rootPath);
 
             // TODO: Determine the right suffixes by inspecting project.json
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
