@@ -7,7 +7,7 @@
   "dependencies": {
     "Microsoft.DotNet.ProjectModel": "1.0.0-rc4-003206",
     "Newtonsoft.Json": "9.0.1",
-    "Peachpie.CodeAnalysis": "0.4.0-dev"
+    "Peachpie.CodeAnalysis": "0.5.0-preview3"
   },
 
   "frameworks": {

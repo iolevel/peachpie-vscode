@@ -19,18 +19,23 @@ namespace Peachpie.LanguageServer
         private const string DefaultConfiguration = "Debug";
         private static readonly NuGetFramework DefaultFramework = FrameworkConstants.CommonFrameworks.NetCoreApp10;
 
+        private const string ParserDiagnosticSource = "pchpp";
+        private const string CompilerDiagnosticSource = "pchpc";
+
         private ServerOptions _options;
         private MessageReader _requestReader;
         private MessageWriter _messageWriter;
 
-        private PhpCompilation _compilation;
+        private CompilationDiagnosticBroker _diagnosticBroker;
         private HashSet<string> _filesWithParserErrors = new HashSet<string>();
+        private HashSet<string> _filesWithSemanticDiagnostics = new HashSet<string>();
 
         public PhpLanguageServer(ServerOptions options, MessageReader requestReader, MessageWriter messageWriter)
         {
             _options = options;
             _requestReader = requestReader;
             _messageWriter = messageWriter;
+            _diagnosticBroker = new CompilationDiagnosticBroker(this.HandleCompilationDiagnostics);
         }
 
         public async Task Run()
@@ -81,7 +86,8 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            this._compilation = CreateCompilationFromProject(projectFile);
+            var compilation = CreateCompilationFromProject(projectFile);
+            _diagnosticBroker.UpdateCompilation(compilation);
 
             // TODO: Determine the right suffixes by inspecting project.json
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
@@ -96,7 +102,7 @@ namespace Peachpie.LanguageServer
         private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
         {
             // For now, only the full document synchronization works
-            string uri = changeParams.TextDocument.Uri;
+            string uri = Uri.UnescapeDataString(changeParams.TextDocument.Uri);
             string text = changeParams.ContentChanges[0].Text;
             UpdateFile(uri, text);
         }
@@ -107,18 +113,52 @@ namespace Peachpie.LanguageServer
             if (syntaxTree.Diagnostics.Length > 0)
             {
                 _filesWithParserErrors.Add(uri);
-                SendDocumentDiagnostics(uri, syntaxTree.Diagnostics);
+                SendDocumentDiagnostics(uri, ParserDiagnosticSource, syntaxTree.Diagnostics);
             }
             else
             {
                 if (_filesWithParserErrors.Remove(uri))
                 {
                     // If there were any errors previously, send an empty set to remove them
-                    SendDocumentDiagnostics(uri, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
+                    SendDocumentDiagnostics(uri, ParserDiagnosticSource, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
                 }
 
-                // TODO: Add to the compilation
+                // Update in the compilation
+                PhpCompilation updatedCompilation;
+                var currentTree = _diagnosticBroker.Compilation.SyntaxTrees
+                    .OfType<PhpSyntaxTree>()
+                    .FirstOrDefault(tree => tree.FilePath == uri);
+                if (currentTree == null)
+                {
+                    updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree);
+                }
+                else
+                {
+                    updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.ReplaceSyntaxTree(currentTree, syntaxTree);
+                }
+
+                _diagnosticBroker.UpdateCompilation(updatedCompilation);
             }
+        }
+
+        private void HandleCompilationDiagnostics(IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
+        {
+            var errorFiles = new HashSet<string>();
+
+            var fileGroups = diagnostics.GroupBy(diagnostic => diagnostic.Location.SourceTree.FilePath);
+            foreach (var fileDiagnostics in fileGroups)
+            {
+                errorFiles.Add(fileDiagnostics.Key);
+                this.SendDocumentDiagnostics(fileDiagnostics.Key, CompilerDiagnosticSource, fileDiagnostics);
+            }
+
+            var cleared = _filesWithSemanticDiagnostics.Except(errorFiles);
+            foreach (var file in cleared)
+            {
+                this.SendDocumentDiagnostics(file, CompilerDiagnosticSource, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
+            }
+
+            _filesWithSemanticDiagnostics = errorFiles;
         }
 
         private void SendInitializationResponse(JsonRpc.RpcRequest request)
@@ -160,7 +200,7 @@ namespace Peachpie.LanguageServer
             _messageWriter.WriteNotification("window/logMessage", logMessageParams);
         }
 
-        private void SendDocumentDiagnostics(string uri, IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
+        private void SendDocumentDiagnostics(string uri, string source, IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
         {
             var diagnosticsParams = new PublishDiagnosticsParams()
             {
@@ -192,12 +232,12 @@ namespace Peachpie.LanguageServer
                 .ToArray();
             var options = new PhpCompilationOptions(
                 outputKind: OutputKind.DynamicallyLinkedLibrary,
-                baseDirectory: projectContext.ProjectDirectory,
+                baseDirectory: "file:///" + projectContext.ProjectDirectory.Replace('\\', '/'),
                 sdkDirectory: null);
 
             var compilation = PhpCompilation.Create(
                 projectContext.ProjectFile.Name,
-                ImmutableArray<SyntaxTree>.Empty,
+                ImmutableArray<PhpSyntaxTree>.Empty,
                 metadataReferences,
                 options);
 
