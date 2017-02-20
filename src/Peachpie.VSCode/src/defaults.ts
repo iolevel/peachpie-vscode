@@ -12,10 +12,10 @@ export var defaultProjectJson =
     "debugType": "portable"
   },
   "dependencies": {
-    "Peachpie.App": "0.5.0-preview3"
+    "Peachpie.App": "0.5.0-*"
   },
   "tools": {
-    "Peachpie.Compiler.Tools": "0.5.0-preview3"
+    "Peachpie.Compiler.Tools": "0.5.0-*"
   },
   "frameworks": {
     "netcoreapp1.0": {
