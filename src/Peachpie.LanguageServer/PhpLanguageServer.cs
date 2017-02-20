@@ -26,6 +26,7 @@ namespace Peachpie.LanguageServer
         private MessageReader _requestReader;
         private MessageWriter _messageWriter;
 
+        private string _rootPath;
         private CompilationDiagnosticBroker _diagnosticBroker;
         private HashSet<string> _filesWithParserErrors = new HashSet<string>();
         private HashSet<string> _filesWithSemanticDiagnostics = new HashSet<string>();
@@ -80,11 +81,15 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
+            rootPath = NormalizePath(rootPath);
+
             string projectFile = Path.Combine(rootPath, Project.FileName);
             if (!File.Exists(projectFile))
             {
                 return;
             }
+
+            _rootPath = rootPath;
 
             var compilation = CreateCompilationFromProject(projectFile);
             _diagnosticBroker.UpdateCompilation(compilation);
@@ -93,41 +98,48 @@ namespace Peachpie.LanguageServer
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
             foreach (var sourceFile in sourceFiles)
             {
-                string uri = new Uri(sourceFile).ToString();         // For file:/// prefix and forward slashes
+                string path = NormalizePath(sourceFile);
                 string text = File.ReadAllText(sourceFile);
-                UpdateFile(uri, text);
+                UpdateFile(path, text);
             }
         }
 
         private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
         {
             // For now, only the full document synchronization works
-            string uri = Uri.UnescapeDataString(changeParams.TextDocument.Uri);
+            string path = NormalizePath(changeParams.TextDocument.Uri);
+
+            // Do not care about the documents outside of the current folder if it's opened
+            if (_rootPath != null && !path.StartsWith(_rootPath))
+            {
+                return;
+            }
+
             string text = changeParams.ContentChanges[0].Text;
-            UpdateFile(uri, text);
+            UpdateFile(path, text);
         }
 
-        private void UpdateFile(string uri, string text)
+        private void UpdateFile(string path, string text)
         {
-            var syntaxTree = PhpSyntaxTree.ParseCode(text, PhpParseOptions.Default, PhpParseOptions.Default, uri);
+            var syntaxTree = PhpSyntaxTree.ParseCode(text, PhpParseOptions.Default, PhpParseOptions.Default, path);
             if (syntaxTree.Diagnostics.Length > 0)
             {
-                _filesWithParserErrors.Add(uri);
-                SendDocumentDiagnostics(uri, ParserDiagnosticSource, syntaxTree.Diagnostics);
+                _filesWithParserErrors.Add(path);
+                SendDocumentDiagnostics(path, ParserDiagnosticSource, syntaxTree.Diagnostics);
             }
             else
             {
-                if (_filesWithParserErrors.Remove(uri))
+                if (_filesWithParserErrors.Remove(path))
                 {
                     // If there were any errors previously, send an empty set to remove them
-                    SendDocumentDiagnostics(uri, ParserDiagnosticSource, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
+                    SendDocumentDiagnostics(path, ParserDiagnosticSource, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
                 }
 
                 // Update in the compilation
                 PhpCompilation updatedCompilation;
                 var currentTree = _diagnosticBroker.Compilation.SyntaxTrees
                     .OfType<PhpSyntaxTree>()
-                    .FirstOrDefault(tree => tree.FilePath == uri);
+                    .FirstOrDefault(tree => tree.FilePath == path);
                 if (currentTree == null)
                 {
                     updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree);
@@ -200,11 +212,11 @@ namespace Peachpie.LanguageServer
             _messageWriter.WriteNotification("window/logMessage", logMessageParams);
         }
 
-        private void SendDocumentDiagnostics(string uri, string source, IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
+        private void SendDocumentDiagnostics(string path, string source, IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
         {
             var diagnosticsParams = new PublishDiagnosticsParams()
             {
-                Uri = uri,
+                Uri = new Uri(path).AbsoluteUri,
                 Diagnostics = diagnostics
                     .Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Hidden)
                     .Select(diagnostic =>
@@ -232,7 +244,7 @@ namespace Peachpie.LanguageServer
                 .ToArray();
             var options = new PhpCompilationOptions(
                 outputKind: OutputKind.DynamicallyLinkedLibrary,
-                baseDirectory: "file:///" + projectContext.ProjectDirectory.Replace('\\', '/'),
+                baseDirectory: NormalizePath(projectContext.ProjectDirectory),
                 sdkDirectory: null);
 
             var compilation = PhpCompilation.Create(
@@ -242,6 +254,30 @@ namespace Peachpie.LanguageServer
                 options);
 
             return compilation;
+        }
+
+        private static string NormalizePath(string path)
+        {
+            if (path.StartsWith("file:///"))
+            {
+                var uri = new Uri(path);
+                path = Uri.UnescapeDataString(uri.AbsolutePath);
+
+                // Fix /c:/...
+                if (path.Length >= 3 && path[0] == '/' && path[2] == ':')
+                {
+                    path = path.Substring(1);
+                }
+            }
+
+            path = path.Replace('\\', '/');
+
+            if (path.EndsWith("/"))
+            {
+                path = path.Substring(0, path.Length - 1);
+            }
+
+            return path;
         }
 
         private static Range ConvertLocation(Location location)

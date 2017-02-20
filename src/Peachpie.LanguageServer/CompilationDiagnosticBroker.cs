@@ -14,7 +14,6 @@ namespace Peachpie.LanguageServer
 
         private readonly Action<IEnumerable<Diagnostic>> _resultHandler;
         private Task<IEnumerable<Diagnostic>> _diagnosticTask;
-        //private bool _isCompilationDirty = true;
 
         public CompilationDiagnosticBroker(Action<IEnumerable<Diagnostic>> resultHandler)
         {
@@ -26,7 +25,6 @@ namespace Peachpie.LanguageServer
         public async void UpdateCompilation(PhpCompilation updatedCompilation)
         {
             Compilation = updatedCompilation;
-            //_isCompilationDirty = true;
 
             await AnalyseLazily(updatedCompilation);
         }
