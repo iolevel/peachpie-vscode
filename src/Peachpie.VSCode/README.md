@@ -29,7 +29,7 @@ This is the official extension of Peachpie for Visual Studio Code. It integrates
 *Syntax error highlighting*
 ![Syntax error](images/syntax-error.png)
 
-*Diagnostics*
+*Peachpie Diagnostics*
 ![Diagnostics](images/unresolved-diagnostics.png)
 
 ## Requirements
