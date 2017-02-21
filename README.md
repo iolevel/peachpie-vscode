@@ -9,7 +9,8 @@ See the [repository of Peachpie - The PHP Compiler and Runtime for .NET](https:/
 
 ## Folder Structure
 
-- [src/Peachpie.VSCode](/tree/master/src/Peachpie.VSCode) contains the Typescript Visual Studio Code Extension
+- [src/Peachpie.VSCode](https://github.com/iolevel/peachpie-vscode/tree/master/src/Peachpie.VSCode) contains the Typescript Visual Studio Code Extension
+
 
 # Installing the Extension
 You can find the Peachpie extension for VSCode in the [marketplace](https://marketplace.visualstudio.com/items?itemName=iolevel.peachpie-vscode). 
