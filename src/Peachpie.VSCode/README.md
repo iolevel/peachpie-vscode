@@ -14,6 +14,8 @@ This is the official extension of Peachpie for Visual Studio Code. It integrates
 * Automatically downloads Peachpie dependencies
 * Automatically enables the C# extension, if already installed
 * Enables breakpoints in .php files
+* Syntax error highlighting
+* Basic diagnostics
 
 *'Create Project' with Peachpie* 
 ![Create Project Command](images/create-project.png)
@@ -24,9 +26,15 @@ This is the official extension of Peachpie for Visual Studio Code. It integrates
 *Debugging PHP in VSCode*
 ![Create Project Command](images/debug.png)
 
+*Syntax error highlighting*
+![Syntax error](images/syntax-error.png)
+
+*Diagnostics*
+![Diagnostics](images/unresolved-diagnostics.png)
+
 ## Requirements
 
-It is necessary to install the C# for Visual Studio Code extension first. Download the extension from the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp) or directly in VSCode by typing the command `ext install csharp`.
+It is necessary to install the C# for Visual Studio Code extension first. Check out the extension in the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp) and download it directly in VSCode by typing the command `ext install csharp`.
 
 ## Known Issues
 
