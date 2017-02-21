@@ -4,8 +4,8 @@ This is the official extension of Peachpie for Visual Studio Code. It integrates
 
 > Please note that Peachpie compiler is still a work in progress. Therefore, some functionalities are not yet supported. For an updated list of supported constructs, please see [our roadmap](https://github.com/iolevel/peachpie/wiki/Peachpie-Roadmap).
 
-<p align="center">
-  <img src="images/tEDLQt.gif"/>
+<p style="text-align:center;">
+  ![Peachpie for VS Code](images/tEDLQt.gif)
 </p>
 
 ## Features
