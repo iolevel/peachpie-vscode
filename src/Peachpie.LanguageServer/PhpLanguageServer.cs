@@ -128,20 +128,23 @@ namespace Peachpie.LanguageServer
                 }
 
                 // Update in the compilation
-                PhpCompilation updatedCompilation;
-                var currentTree = _diagnosticBroker.Compilation.SyntaxTrees
-                    .OfType<PhpSyntaxTree>()
-                    .FirstOrDefault(tree => tree.FilePath == path);
-                if (currentTree == null)
+                if (_diagnosticBroker.Compilation != null)
                 {
-                    updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree);
-                }
-                else
-                {
-                    updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.ReplaceSyntaxTree(currentTree, syntaxTree);
-                }
+                    PhpCompilation updatedCompilation;
+                    var currentTree = _diagnosticBroker.Compilation.SyntaxTrees
+                        .OfType<PhpSyntaxTree>()
+                        .FirstOrDefault(tree => tree.FilePath == path);
+                    if (currentTree == null)
+                    {
+                        updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree);
+                    }
+                    else
+                    {
+                        updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.ReplaceSyntaxTree(currentTree, syntaxTree);
+                    }
 
-                _diagnosticBroker.UpdateCompilation(updatedCompilation);
+                    _diagnosticBroker.UpdateCompilation(updatedCompilation); 
+                }
             }
         }
 

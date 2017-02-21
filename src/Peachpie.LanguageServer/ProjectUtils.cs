@@ -88,6 +88,12 @@ namespace Peachpie.LanguageServer
                 baseDirectory: PathUtils.NormalizePath(projectContext.ProjectDirectory),
                 sdkDirectory: null);
 
+            if (metadataReferences.Length == 0)
+            {
+                // dotnet restore hasn't run yet
+                return null;
+            }
+
             var compilation = PhpCompilation.Create(
                 projectContext.ProjectFile.Name,
                 ImmutableArray<PhpSyntaxTree>.Empty,
