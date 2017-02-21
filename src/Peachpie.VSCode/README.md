@@ -14,8 +14,8 @@ This is the official extension of Peachpie for Visual Studio Code. It integrates
 * Automatically downloads Peachpie dependencies
 * Automatically enables the C# extension, if already installed
 * Enables breakpoints in .php files
-* Syntax error highlighting
-* Basic diagnostics
+* Underlining of syntax errors
+* Peachpie Diagnostics underlining missing or not yet implemented functions
 
 *'Create Project' with Peachpie* 
 ![Create Project Command](images/create-project.png)
@@ -45,7 +45,7 @@ Peachpie compiler is a work in progress, and thus many functionalities are not y
 ### 0.5.0
 
 - New project refers to Peachpie 0.5.0
-- Syntax errors
+- Underlining of syntax errors
 - Code Analysis diagnostics
 
 ### 0.3.0
