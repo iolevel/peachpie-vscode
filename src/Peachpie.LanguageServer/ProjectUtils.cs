@@ -22,7 +22,7 @@ namespace Peachpie.LanguageServer
         {
             GlobalSettings globalSettings;
             var settingsFile = Path.Combine(directory, GlobalSettings.FileName);
-            if (GlobalSettings.TryGetGlobalSettings(settingsFile, out globalSettings))
+            if (File.Exists(settingsFile) && GlobalSettings.TryGetGlobalSettings(settingsFile, out globalSettings))
             {
                 _globalSettings = globalSettings;
                 foreach (string searchRelativePath in globalSettings.ProjectSearchPaths)
