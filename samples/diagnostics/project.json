@@ -1,0 +1,27 @@
+{
+    "name": "diagnostics",
+    "version": "1.0.0",
+    "description": "Demonstration of Peachpie diagnostics",
+    "buildOptions": {
+        "compilerName": "php",
+        "compile": "**/*.php",
+        "emitEntryPoint": true,
+        "debugType": "portable"
+    },
+    "dependencies": {
+        "Peachpie.App": "0.5.0-preview5"
+    },
+    "tools": {
+        "Peachpie.Compiler.Tools": "0.5.0-preview5"
+    },
+    "frameworks": {
+        "netcoreapp1.0": {
+            "dependencies": {
+                "Microsoft.NETCore.App": {
+                    "type": "platform",
+                    "version": "1.0.0"
+                }
+            }
+        }
+    }
+}
