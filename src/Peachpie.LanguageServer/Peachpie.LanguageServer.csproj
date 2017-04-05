@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.ProjectModel" Version="1.0.0-rc4-003206" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <PackageReference Include="Peachpie.CodeAnalysis" Version="0.5.0-preview5" />
+    <PackageReference Include="Peachpie.CodeAnalysis" Version="0.6.1-*" />
   </ItemGroup>
 
 </Project>
