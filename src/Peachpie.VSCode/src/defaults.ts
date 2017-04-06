@@ -1,34 +1,5 @@
 'use strict';
 
-export var defaultProjectJson =
-{
-  "name": "PeachpieProject",
-  "version": "1.0.0-*",
-  "description": "PHP project compiled into .NET by Peachpie",
-  "buildOptions": {
-    "compilerName": "php",
-    "compile": "**/*.php",
-    "emitEntryPoint": true,
-    "debugType": "portable"
-  },
-  "dependencies": {
-    "Peachpie.App": "0.5.0-*"
-  },
-  "tools": {
-    "Peachpie.Compiler.Tools": "0.5.0-*"
-  },
-  "frameworks": {
-    "netcoreapp1.0": {
-      "dependencies": {
-        "Microsoft.NETCore.App": {
-          "type": "platform",
-          "version": "1.0.0"
-        }
-      }
-    }
-  }
-};
-
 export var defaultTasksJson =
 {
     "version": "0.1.0",
@@ -39,7 +10,7 @@ export var defaultTasksJson =
         {
             "taskName": "build",
             "args": [
-                "${workspaceRoot}/project.json"
+                "${workspaceRoot}"
             ],
             "isBuildCommand": true,
             "problemMatcher": "$msCompile"
@@ -56,7 +27,7 @@ export var defaultLaunchJson =
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceRoot}/bin/Debug/netcoreapp1.0/PeachpieProject.dll",
+      "program": "${workspaceRoot}/bin/Debug/netcoreapp1.0/project.dll",
       "args": [],
       "cwd": "${workspaceRoot}",
       "externalConsole": false,

@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 
-import { defaultProjectJson, defaultTasksJson, defaultLaunchJson } from './defaults';
+import { defaultTasksJson, defaultLaunchJson } from './defaults';
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 
 let channel: vscode.OutputChannel;
@@ -37,17 +37,17 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Create project.json
-        let projectJsonPath = path.join(rootPath, "project.json");
-        if (fs.existsSync(projectJsonPath)) {
-            showInfo(".NET Core project.json configuration file already exists\n");            
+        // Create project.msbuildproj
+        let projectPath = path.join(rootPath, "project.msbuildproj");
+        if (fs.existsSync(projectPath)) {
+            showInfo("Peachpie project.msbuildproj file already exists\n");            
         } else {
-            showInfo("Creating .NET Core project.json configuration file...");
-            let isProjectJsonSuccess = await createProjectJson(projectJsonPath);
-            if (isProjectJsonSuccess) {
-                showInfo(".NET Core project.json configuration file was successfully created\n");
+            showInfo("Creating project.msbuildproj...");
+            let isProjectSuccess = await createProjectFile(projectPath);
+            if (isProjectSuccess) {
+                showInfo("project.msbuildproj was successfully created\n");
             } else {
-                showError("Error in creating .NET Core project.json configuration file\n");
+                showError("Error in creating project.msbuildproj\n");
                 return;
             }
         }
@@ -134,15 +134,16 @@ function showError(message: string, doShowWindow = true) {
     }
 }
 
-// Create project.json file in the opened root folder
-async function createProjectJson(filePath: string): Promise<boolean> {
-    let projectJsonUri = vscode.Uri.parse(`untitled:${filePath}`);
-    let projectJsonDocument = await vscode.workspace.openTextDocument(projectJsonUri);
-    let projectJsonContent = JSON.stringify(defaultProjectJson, null, 4);
-    let projectJsonEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectJsonContent);
+// Create project.msbuildproj file in the opened root folder
+async function createProjectFile(filePath: string): Promise<boolean> {
+    let projectUri = vscode.Uri.parse(`untitled:${filePath}`);
+    let projectDocument = await vscode.workspace.openTextDocument(projectUri);
+    let extensionDir = vscode.extensions.getExtension("iolevel.peachpie-vscode").extensionPath;
+    let projectContent = fs.readFileSync(extensionDir + "/templates/project.msbuildproj").toString();
+    let projectEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectContent);
     
     let wsEdit = new vscode.WorkspaceEdit();
-    wsEdit.set(projectJsonUri, [ projectJsonEdit ]);
+    wsEdit.set(projectUri, [ projectEdit ]);
     let isSuccess = await vscode.workspace.applyEdit(wsEdit);
 
     if (isSuccess) {
