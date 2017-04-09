@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
     channel = vscode.window.createOutputChannel("Peachpie");
     channel.appendLine("Peachpie extension was activated\n");
 
-    // let languageClientDisposable = startLanguageServer(context);
+    let languageClientDisposable = startLanguageServer(context);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(/*languageClientDisposable,*/ createProjectCommand, channel);
+    context.subscriptions.push(languageClientDisposable, createProjectCommand, channel);
 }
 
 function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposable {
