@@ -54,7 +54,7 @@ namespace Peachpie.LanguageServer
                         {
                             SendGreetingMessage();
                         }
-                        OpenFolder(initializeParams.RootPath);
+                        await OpenFolder(initializeParams.RootPath);
                         break;
                     case "textDocument/didOpen":
                         var openParams = request.Params.ToObject<DidOpenTextDocumentParams>();
@@ -70,23 +70,25 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private void OpenFolder(string rootPath)
+        private async Task OpenFolder(string rootPath)
         {
             if (rootPath == null)
             {
                 return;
             }
 
-            var compilation = ProjectUtils.TryGetFirstPhpProject(rootPath, out rootPath);
-            if (compilation == null)
+            var projectResult = await ProjectUtils.TryGetFirstPhpProjectAsync(rootPath);
+            if (projectResult.Compilation == null)
             {
                 return;
             }
 
-            _diagnosticBroker.UpdateCompilation(compilation);
+            rootPath = Path.GetDirectoryName(projectResult.ProjectPath);
+
+            _diagnosticBroker.UpdateCompilation(projectResult.Compilation);
             _rootPath = PathUtils.NormalizePath(rootPath);
 
-            // TODO: Determine the right suffixes by inspecting project.json
+            // TODO: Determine the right suffixes by inspecting the MSBuild project
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
             foreach (var sourceFile in sourceFiles)
             {
