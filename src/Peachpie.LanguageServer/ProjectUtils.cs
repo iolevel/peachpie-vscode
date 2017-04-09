@@ -1,7 +1,6 @@
 ﻿using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.CodeAnalysis;
-using NuGet.Frameworks;
 using Pchp.CodeAnalysis;
 using System;
 using System.Collections.Generic;

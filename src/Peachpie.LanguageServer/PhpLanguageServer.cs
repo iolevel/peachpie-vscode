@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using Microsoft.DotNet.ProjectModel;
 using Newtonsoft.Json;
 using Pchp.CodeAnalysis;
 using Peachpie.LanguageServer.Protocol;
