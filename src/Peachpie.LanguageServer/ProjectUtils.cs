@@ -25,19 +25,7 @@ namespace Peachpie.LanguageServer
             DtdProcessing = DtdProcessing.Prohibit
         };
 
-        public struct ProjectSearchResult
-        {
-            public PhpCompilation Compilation { get; }
-            public string ProjectPath { get; }
-
-            public ProjectSearchResult(PhpCompilation compilation, string projectPath)
-            {
-                this.Compilation = compilation;
-                this.ProjectPath = projectPath;
-            }
-        }
-
-        public static async Task<ProjectSearchResult> TryGetFirstPhpProjectAsync(string directory)
+        public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory)
         {
             foreach (var solutionPath in Directory.GetFiles(directory, SolutionNamePattern))
             {
@@ -46,10 +34,10 @@ namespace Peachpie.LanguageServer
                 {
                     foreach (var project in solution.ProjectsInOrder)
                     {
-                        var phpCompilation = await TryCreateCompilationFromProjectAsync(project.AbsolutePath);
-                        if (phpCompilation != null)
+                        var projectHandler = await TryGetPhpProjectAsync(project.AbsolutePath);
+                        if (projectHandler != null)
                         {
-                            return new ProjectSearchResult(phpCompilation, project.AbsolutePath);
+                            return projectHandler;
                         }
                     }
                 }
@@ -57,17 +45,17 @@ namespace Peachpie.LanguageServer
 
             foreach (var projectPath in Directory.GetFiles(directory, ProjectNamePattern, SearchOption.AllDirectories))
             {
-                var phpCompilation = await TryCreateCompilationFromProjectAsync(projectPath);
-                if (phpCompilation != null)
+                var projectHandler = await TryGetPhpProjectAsync(projectPath);
+                if (projectHandler != null)
                 {
-                    return new ProjectSearchResult(phpCompilation, projectPath);
+                    return projectHandler;
                 }
             }
 
-            return default(ProjectSearchResult);
+            return null;
         }
 
-        public static async Task<PhpCompilation> TryCreateCompilationFromProjectAsync(string projectFile)
+        private static async Task<ProjectHandler> TryGetPhpProjectAsync(string projectFile)
         {
             try
             {
@@ -108,7 +96,7 @@ namespace Peachpie.LanguageServer
                     metadataReferences,
                     options);
 
-                return compilation;
+                return new ProjectHandler(compilation, projectInstance);
             }
             catch (Exception)
             {

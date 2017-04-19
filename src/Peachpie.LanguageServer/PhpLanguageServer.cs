@@ -76,16 +76,14 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            var projectResult = await ProjectUtils.TryGetFirstPhpProjectAsync(rootPath);
-            if (projectResult.Compilation == null)
+            var project = await ProjectUtils.TryGetFirstPhpProjectAsync(rootPath);
+            if (project == null)
             {
                 return;
             }
 
-            rootPath = Path.GetDirectoryName(projectResult.ProjectPath);
-
-            _diagnosticBroker.UpdateCompilation(projectResult.Compilation);
-            _rootPath = PathUtils.NormalizePath(rootPath);
+            _diagnosticBroker.UpdateCompilation(project.Compilation);
+            _rootPath = PathUtils.NormalizePath(project.RootPath);
 
             // TODO: Determine the right suffixes by inspecting the MSBuild project
             var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
