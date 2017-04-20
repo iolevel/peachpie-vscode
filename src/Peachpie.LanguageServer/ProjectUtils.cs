@@ -90,9 +90,12 @@ namespace Peachpie.LanguageServer
                 // TODO: Get from MSBuild
                 string projectName = Path.GetFileNameWithoutExtension(projectFile);
 
+                var syntaxTrees = await ParseSourceFilesAsync(projectInstance);
+
                 var compilation = PhpCompilation.Create(
                     projectName,
-                    ImmutableArray<PhpSyntaxTree>.Empty,
+                    //ImmutableArray<PhpSyntaxTree>.Empty,
+                    syntaxTrees,
                     metadataReferences,
                     options);
 
@@ -125,7 +128,7 @@ namespace Peachpie.LanguageServer
             };
 
             Environment.SetEnvironmentVariable("MSBuildExtensionsPath", AppContext.BaseDirectory);
-            Environment.SetEnvironmentVariable("MSBuildSDKsPath", @"C:\Program Files\dotnet\sdk\1.0.0\Sdks");
+            Environment.SetEnvironmentVariable("MSBuildSDKsPath", GetMSBuildSDKsPath());
 
             // TODO: Make properly async
             var fileContents = new MemoryStream(File.ReadAllBytes(projectFile));
@@ -174,6 +177,26 @@ namespace Peachpie.LanguageServer
             }, null);
 
             return taskSource.Task;
+        }
+
+        private static async Task<PhpSyntaxTree[]> ParseSourceFilesAsync(ProjectInstance projectInstance)
+        {
+            // TODO: Determine the right suffixes by inspecting the MSBuild project
+            string[] sourceFiles = Directory.GetFiles(projectInstance.Directory, "*.php", SearchOption.AllDirectories);
+
+            var syntaxTrees = new PhpSyntaxTree[sourceFiles.Length];
+
+            var tasks = Enumerable.Range(0, sourceFiles.Length).Select((i) => Task.Run(() =>
+            {
+                string path = sourceFiles[i];
+                string code = File.ReadAllText(path);   // TODO: Make async
+
+                syntaxTrees[i] = PhpSyntaxTree.ParseCode(code, PhpParseOptions.Default, PhpParseOptions.Default, path);
+            })).ToArray();
+
+            await Task.WhenAll(tasks);
+
+            return syntaxTrees;
         }
 
         /// <remarks>
