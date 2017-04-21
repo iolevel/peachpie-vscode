@@ -200,16 +200,19 @@ namespace Peachpie.LanguageServer
 
         private static async Task<PhpSyntaxTree[]> ParseSourceFilesAsync(ProjectInstance projectInstance)
         {
-            // TODO: Determine the right suffixes by inspecting the MSBuild project
+            // TODO: Determine the right files by inspecting the MSBuild project
             string[] sourceFiles = Directory.GetFiles(projectInstance.Directory, "*.php", SearchOption.AllDirectories);
 
             var syntaxTrees = new PhpSyntaxTree[sourceFiles.Length];
 
-            var tasks = Enumerable.Range(0, sourceFiles.Length).Select((i) => Task.Run(() =>
+            var tasks = Enumerable.Range(0, sourceFiles.Length).Select((i) => Task.Run(async () =>
             {
                 string path = PathUtils.NormalizePath(sourceFiles[i]);
-                string code = File.ReadAllText(path);   // TODO: Make async
-
+                string code;
+                using (var reader = File.OpenText(path))
+                {
+                    code = await reader.ReadToEndAsync();
+                }
                 syntaxTrees[i] = PhpSyntaxTree.ParseCode(code, PhpParseOptions.Default, PhpParseOptions.Default, path);
             })).ToArray();
 
