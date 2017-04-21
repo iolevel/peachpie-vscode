@@ -59,6 +59,10 @@ namespace Peachpie.LanguageServer
                         var changeParams = request.Params.ToObject<DidChangeTextDocumentParams>();
                         ProcessDocumentChanges(changeParams);
                         break;
+                    case "workspace/didChangeWatchedFiles":
+                        var changeWatchedParams = request.Params.ToObject<DidChangeWatchedFilesParams>();
+                        await ProcessFileChangesAsync(changeWatchedParams);
+                        break;
                     default:
                         break;
                 }
@@ -74,12 +78,34 @@ namespace Peachpie.LanguageServer
 
             _rootPath = PathUtils.NormalizePath(rootPath);
 
-            _project = await ProjectUtils.TryGetFirstPhpProjectAsync(rootPath);
-            if (_project == null)
+            await TryReloadProjectAsync();
+        }
+
+        private async Task ProcessFileChangesAsync(DidChangeWatchedFilesParams changeWatchedParams)
+        {
+            // We now watch only .msbuildproj and project.assets.json files, forcing us to reload the project
+            await TryReloadProjectAsync();
+        }
+
+        private async Task TryReloadProjectAsync()
+        {
+            if (_rootPath == null)
             {
                 return;
             }
 
+            var newProject = await ProjectUtils.TryGetFirstPhpProjectAsync(_rootPath);
+            if (newProject == null)
+            {
+                return;
+            }
+
+            if (_project != null)
+            {
+                _project.DocumentDiagnosticsChanged -= DocumentDiagnosticsChanged;
+            }
+
+            _project = newProject;
             _project.DocumentDiagnosticsChanged += DocumentDiagnosticsChanged;
             _project.Initialize();
         }

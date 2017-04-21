@@ -117,7 +117,10 @@ function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposab
         documentSelector: ['php'],
         synchronize: {
             // Notify the server when running dotnet restore on a project in the workspace
-            fileEvents: workspace.createFileSystemWatcher('**/project.assets.json')
+            fileEvents: [
+                workspace.createFileSystemWatcher('**/project.assets.json'),
+                workspace.createFileSystemWatcher('**/*.msbuildproj')
+            ] 
         }
     }
 
