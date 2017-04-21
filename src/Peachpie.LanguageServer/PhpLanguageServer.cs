@@ -81,25 +81,28 @@ namespace Peachpie.LanguageServer
             }
 
             _project.DocumentDiagnosticsChanged += DocumentDiagnosticsChanged;
+            _project.Initialize();
         }
 
         private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
         {
-            // For now, only the full document synchronization works
             string path = PathUtils.NormalizePath(changeParams.TextDocument.Uri);
 
-            // Do not care about the documents outside of the current folder if it's opened
+            // Don't care about the documents outside the current folder if it's opened
             if (_rootPath != null && !path.StartsWith(_rootPath))
             {
                 return;
             }
 
+            // Similarly, ignore files outside the active project if opened
             if (_project != null && !path.StartsWith(_project.RootPath))
             {
                 return;
             }
 
+            // For now, only the full document synchronization works
             string text = changeParams.ContentChanges[0].Text;
+
             _project.UpdateFile(path, text);
         }
 

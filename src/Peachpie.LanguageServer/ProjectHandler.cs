@@ -32,7 +32,7 @@ namespace Peachpie.LanguageServer
 
         public ProjectInstance BuildInstance { get; }
 
-        public string RootPath => BuildInstance.Directory;
+        public string RootPath => PathUtils.NormalizePath(BuildInstance.Directory);
 
         public event EventHandler<DocumentDiagnosticsEventArgs> DocumentDiagnosticsChanged;
 
@@ -41,9 +41,19 @@ namespace Peachpie.LanguageServer
             BuildInstance = buildInstance;
             _diagnosticBroker = new CompilationDiagnosticBroker(HandleCompilationDiagnostics);
             _diagnosticBroker.UpdateCompilation(compilation);
+        }
 
-            // TODO: Initially populate _filesWithParserErrors
-            //       (_filesWithSemanticDiagnostics will be updated by _diagnosticBroker)
+        public void Initialize()
+        {
+            // Initially populate _filesWithParserErrors and send the corresponding diagnostics
+            // (_filesWithSemanticDiagnostics will be updated by _diagnosticBroker)
+            var diagnostics = Compilation.GetParseDiagnostics();
+            foreach (var fileDiagnostics in diagnostics.GroupBy(diag => diag.Location.SourceTree.FilePath))
+            {
+                string path = fileDiagnostics.Key;
+                _filesWithParserErrors.Add(path);
+                OnDocumentDiagnosticsChanged(path, fileDiagnostics);
+            }
         }
 
         public void UpdateFile(string path, string text)

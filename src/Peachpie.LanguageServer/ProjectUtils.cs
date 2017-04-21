@@ -188,7 +188,7 @@ namespace Peachpie.LanguageServer
 
             var tasks = Enumerable.Range(0, sourceFiles.Length).Select((i) => Task.Run(() =>
             {
-                string path = sourceFiles[i];
+                string path = PathUtils.NormalizePath(sourceFiles[i]);
                 string code = File.ReadAllText(path);   // TODO: Make async
 
                 syntaxTrees[i] = PhpSyntaxTree.ParseCode(code, PhpParseOptions.Default, PhpParseOptions.Default, path);
