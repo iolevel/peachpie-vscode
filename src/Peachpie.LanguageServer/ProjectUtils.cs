@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using System.Threading;
 
 namespace Peachpie.LanguageServer
 {
@@ -24,6 +25,8 @@ namespace Peachpie.LanguageServer
         {
             DtdProcessing = DtdProcessing.Prohibit
         };
+
+        private static SemaphoreSlim _buildManagerSemaphore = new SemaphoreSlim(1);
 
         public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory)
         {
@@ -149,18 +152,34 @@ namespace Peachpie.LanguageServer
                 .Any(item => item.GetMetadataValue("Filename") + item.GetMetadataValue("Extension") == "Peachpie.Compiler.Tools");
         }
 
-        private static Task<ProjectInstance> ResolveReferencesAsync(Project project)
+        private static async Task<ProjectInstance> ResolveReferencesAsync(Project project)
+        {
+
+            var projectInstance = project.CreateProjectInstance();
+            var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
+
+            var buildManager = BuildManager.DefaultBuildManager;
+            var buildParameters = new BuildParameters(project.ProjectCollection);
+
+            await _buildManagerSemaphore.WaitAsync();
+            try
+            {
+                return await RunBuildAsync(projectInstance, buildRequestData, buildManager, buildParameters);
+            }
+            finally
+            {
+                _buildManagerSemaphore.Release();
+            }
+        }
+
+        private static Task<ProjectInstance> RunBuildAsync(
+            ProjectInstance projectInstance,
+            BuildRequestData buildRequestData,
+            BuildManager buildManager,
+            BuildParameters buildParameters)
         {
             var taskSource = new TaskCompletionSource<ProjectInstance>();
 
-            var projectInstance = project.CreateProjectInstance();
-
-            var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
-
-            // TODO: Implement async locking
-            var buildManager = BuildManager.DefaultBuildManager;
-
-            var buildParameters = new BuildParameters(project.ProjectCollection);
             buildManager.BeginBuild(buildParameters);
 
             buildManager.PendBuildRequest(buildRequestData).ExecuteAsync(sub =>
