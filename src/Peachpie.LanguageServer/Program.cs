@@ -17,6 +17,8 @@ namespace Peachpie.LanguageServer
 
         private static async Task MainAsync(string[] args)
         {
+            await EnvironmentUtils.InitializeAsync();
+
             var options = ServerOptions.ParseFromArguments(args);
 
             var requestReader = new MessageReader(Console.OpenStandardInput());

@@ -127,8 +127,8 @@ namespace Peachpie.LanguageServer
                 { "DesignTimeBuild", "true" },
             };
 
-            Environment.SetEnvironmentVariable("MSBuildExtensionsPath", AppContext.BaseDirectory);
-            Environment.SetEnvironmentVariable("MSBuildSDKsPath", GetMSBuildSDKsPath());
+            Environment.SetEnvironmentVariable("MSBuildExtensionsPath", EnvironmentUtils.NetCoreRuntimePath);
+            Environment.SetEnvironmentVariable("MSBuildSDKsPath", EnvironmentUtils.MSBuildSDKsPath);
 
             // TODO: Make properly async
             var fileContents = new MemoryStream(File.ReadAllBytes(projectFile));
@@ -197,20 +197,6 @@ namespace Peachpie.LanguageServer
             await Task.WhenAll(tasks);
 
             return syntaxTrees;
-        }
-
-        /// <remarks>
-        /// Copied from Microsoft.DotNet.Tools.MSBuild.MSBuildForwardingApp.GetMSBuildSDKsPath().
-        /// </remarks>
-        private static string GetMSBuildSDKsPath()
-        {
-            string envMSBuildSDKsPath = Environment.GetEnvironmentVariable("MSBuildSDKsPath");
-            if (envMSBuildSDKsPath != null)
-            {
-                return envMSBuildSDKsPath;
-            }
-
-            return Path.Combine(AppContext.BaseDirectory, "Sdks");
         }
     }
 }
