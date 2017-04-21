@@ -14,24 +14,20 @@ namespace Peachpie.LanguageServer
 {
     internal class PhpLanguageServer
     {
-        private const string ParserDiagnosticSource = "pchpp";
-        private const string CompilerDiagnosticSource = "pchpc";
+        private const string DiagnosticSource = "peachpie";
 
         private ServerOptions _options;
         private MessageReader _requestReader;
         private MessageWriter _messageWriter;
 
         private string _rootPath;
-        private CompilationDiagnosticBroker _diagnosticBroker;
-        private HashSet<string> _filesWithParserErrors = new HashSet<string>();
-        private HashSet<string> _filesWithSemanticDiagnostics = new HashSet<string>();
+        private ProjectHandler _project;
 
         public PhpLanguageServer(ServerOptions options, MessageReader requestReader, MessageWriter messageWriter)
         {
             _options = options;
             _requestReader = requestReader;
             _messageWriter = messageWriter;
-            _diagnosticBroker = new CompilationDiagnosticBroker(this.HandleCompilationDiagnostics);
         }
 
         public async Task Run()
@@ -63,6 +59,10 @@ namespace Peachpie.LanguageServer
                         var changeParams = request.Params.ToObject<DidChangeTextDocumentParams>();
                         ProcessDocumentChanges(changeParams);
                         break;
+                    case "workspace/didChangeWatchedFiles":
+                        var changeWatchedParams = request.Params.ToObject<DidChangeWatchedFilesParams>();
+                        await ProcessFileChangesAsync(changeWatchedParams);
+                        break;
                     default:
                         break;
                 }
@@ -76,95 +76,60 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            var project = await ProjectUtils.TryGetFirstPhpProjectAsync(rootPath);
-            if (project == null)
+            _rootPath = PathUtils.NormalizePath(rootPath);
+
+            await TryReloadProjectAsync();
+        }
+
+        private async Task ProcessFileChangesAsync(DidChangeWatchedFilesParams changeWatchedParams)
+        {
+            // We now watch only .msbuildproj and project.assets.json files, forcing us to reload the project
+            await TryReloadProjectAsync();
+        }
+
+        private async Task TryReloadProjectAsync()
+        {
+            if (_rootPath == null)
             {
                 return;
             }
 
-            _diagnosticBroker.UpdateCompilation(project.Compilation);
-            _rootPath = PathUtils.NormalizePath(project.RootPath);
-
-            // TODO: Determine the right suffixes by inspecting the MSBuild project
-            var sourceFiles = Directory.GetFiles(rootPath, "*.php", SearchOption.AllDirectories);
-            foreach (var sourceFile in sourceFiles)
+            var newProject = await ProjectUtils.TryGetFirstPhpProjectAsync(_rootPath);
+            if (newProject == null)
             {
-                string path = PathUtils.NormalizePath(sourceFile);
-                string text = File.ReadAllText(sourceFile);
-                UpdateFile(path, text);
+                return;
             }
+
+            if (_project != null)
+            {
+                _project.DocumentDiagnosticsChanged -= DocumentDiagnosticsChanged;
+            }
+
+            _project = newProject;
+            _project.DocumentDiagnosticsChanged += DocumentDiagnosticsChanged;
+            _project.Initialize();
         }
 
         private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
         {
-            // For now, only the full document synchronization works
             string path = PathUtils.NormalizePath(changeParams.TextDocument.Uri);
 
-            // Do not care about the documents outside of the current folder if it's opened
+            // Don't care about the documents outside the current folder if it's opened
             if (_rootPath != null && !path.StartsWith(_rootPath))
             {
                 return;
             }
 
+            // Similarly, ignore files outside the active project if opened
+            if (_project != null && !path.StartsWith(_project.RootPath))
+            {
+                return;
+            }
+
+            // For now, only the full document synchronization works
             string text = changeParams.ContentChanges[0].Text;
-            UpdateFile(path, text);
-        }
 
-        private void UpdateFile(string path, string text)
-        {
-            var syntaxTree = PhpSyntaxTree.ParseCode(text, PhpParseOptions.Default, PhpParseOptions.Default, path);
-            if (syntaxTree.Diagnostics.Length > 0)
-            {
-                _filesWithParserErrors.Add(path);
-                SendDocumentDiagnostics(path, ParserDiagnosticSource, syntaxTree.Diagnostics);
-            }
-            else
-            {
-                if (_filesWithParserErrors.Remove(path))
-                {
-                    // If there were any errors previously, send an empty set to remove them
-                    SendDocumentDiagnostics(path, ParserDiagnosticSource, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
-                }
-
-                // Update in the compilation
-                if (_diagnosticBroker.Compilation != null)
-                {
-                    PhpCompilation updatedCompilation;
-                    var currentTree = _diagnosticBroker.Compilation.SyntaxTrees
-                        .OfType<PhpSyntaxTree>()
-                        .FirstOrDefault(tree => tree.FilePath == path);
-                    if (currentTree == null)
-                    {
-                        updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree);
-                    }
-                    else
-                    {
-                        updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.ReplaceSyntaxTree(currentTree, syntaxTree);
-                    }
-
-                    _diagnosticBroker.UpdateCompilation(updatedCompilation); 
-                }
-            }
-        }
-
-        private void HandleCompilationDiagnostics(IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
-        {
-            var errorFiles = new HashSet<string>();
-
-            var fileGroups = diagnostics.GroupBy(diagnostic => diagnostic.Location.SourceTree.FilePath);
-            foreach (var fileDiagnostics in fileGroups)
-            {
-                errorFiles.Add(fileDiagnostics.Key);
-                this.SendDocumentDiagnostics(fileDiagnostics.Key, CompilerDiagnosticSource, fileDiagnostics);
-            }
-
-            var cleared = _filesWithSemanticDiagnostics.Except(errorFiles);
-            foreach (var file in cleared)
-            {
-                this.SendDocumentDiagnostics(file, CompilerDiagnosticSource, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
-            }
-
-            _filesWithSemanticDiagnostics = errorFiles;
+            _project.UpdateFile(path, text);
         }
 
         private void SendInitializationResponse(JsonRpc.RpcRequest request)
@@ -206,12 +171,12 @@ namespace Peachpie.LanguageServer
             _messageWriter.WriteNotification("window/logMessage", logMessageParams);
         }
 
-        private void SendDocumentDiagnostics(string path, string source, IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
+        private void DocumentDiagnosticsChanged(object sender, ProjectHandler.DocumentDiagnosticsEventArgs e)
         {
             var diagnosticsParams = new PublishDiagnosticsParams()
             {
-                Uri = new Uri(path).AbsoluteUri,
-                Diagnostics = diagnostics
+                Uri = new Uri(e.DocumentPath).AbsoluteUri,
+                Diagnostics = e.Diagnostics
                     .Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Hidden)
                     .Select(diagnostic =>
                     new Protocol.Diagnostic()
@@ -219,7 +184,7 @@ namespace Peachpie.LanguageServer
                         Range = ConvertLocation(diagnostic.Location),
                         Severity = ConvertSeverity(diagnostic.Severity),
                         Code = diagnostic.Id,
-                        Source = "peachpie",
+                        Source = DiagnosticSource,
                         Message = diagnostic.GetMessage()
                     }).ToArray()
             };

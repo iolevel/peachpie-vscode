@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
+using System.Threading;
 
 namespace Peachpie.LanguageServer
 {
@@ -24,6 +25,8 @@ namespace Peachpie.LanguageServer
         {
             DtdProcessing = DtdProcessing.Prohibit
         };
+
+        private static SemaphoreSlim _buildManagerSemaphore = new SemaphoreSlim(1);
 
         public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory)
         {
@@ -90,9 +93,12 @@ namespace Peachpie.LanguageServer
                 // TODO: Get from MSBuild
                 string projectName = Path.GetFileNameWithoutExtension(projectFile);
 
+                var syntaxTrees = await ParseSourceFilesAsync(projectInstance);
+
                 var compilation = PhpCompilation.Create(
                     projectName,
-                    ImmutableArray<PhpSyntaxTree>.Empty,
+                    //ImmutableArray<PhpSyntaxTree>.Empty,
+                    syntaxTrees,
                     metadataReferences,
                     options);
 
@@ -124,8 +130,8 @@ namespace Peachpie.LanguageServer
                 { "DesignTimeBuild", "true" },
             };
 
-            Environment.SetEnvironmentVariable("MSBuildExtensionsPath", AppContext.BaseDirectory);
-            Environment.SetEnvironmentVariable("MSBuildSDKsPath", @"C:\Program Files\dotnet\sdk\1.0.0\Sdks");
+            Environment.SetEnvironmentVariable("MSBuildExtensionsPath", EnvironmentUtils.NetCoreRuntimePath);
+            Environment.SetEnvironmentVariable("MSBuildSDKsPath", EnvironmentUtils.MSBuildSDKsPath);
 
             // TODO: Make properly async
             var fileContents = new MemoryStream(File.ReadAllBytes(projectFile));
@@ -146,18 +152,34 @@ namespace Peachpie.LanguageServer
                 .Any(item => item.GetMetadataValue("Filename") + item.GetMetadataValue("Extension") == "Peachpie.Compiler.Tools");
         }
 
-        private static Task<ProjectInstance> ResolveReferencesAsync(Project project)
+        private static async Task<ProjectInstance> ResolveReferencesAsync(Project project)
+        {
+
+            var projectInstance = project.CreateProjectInstance();
+            var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
+
+            var buildManager = BuildManager.DefaultBuildManager;
+            var buildParameters = new BuildParameters(project.ProjectCollection);
+
+            await _buildManagerSemaphore.WaitAsync();
+            try
+            {
+                return await RunBuildAsync(projectInstance, buildRequestData, buildManager, buildParameters);
+            }
+            finally
+            {
+                _buildManagerSemaphore.Release();
+            }
+        }
+
+        private static Task<ProjectInstance> RunBuildAsync(
+            ProjectInstance projectInstance,
+            BuildRequestData buildRequestData,
+            BuildManager buildManager,
+            BuildParameters buildParameters)
         {
             var taskSource = new TaskCompletionSource<ProjectInstance>();
 
-            var projectInstance = project.CreateProjectInstance();
-
-            var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
-
-            // TODO: Implement async locking
-            var buildManager = BuildManager.DefaultBuildManager;
-
-            var buildParameters = new BuildParameters(project.ProjectCollection);
             buildManager.BeginBuild(buildParameters);
 
             buildManager.PendBuildRequest(buildRequestData).ExecuteAsync(sub =>
@@ -176,18 +198,27 @@ namespace Peachpie.LanguageServer
             return taskSource.Task;
         }
 
-        /// <remarks>
-        /// Copied from Microsoft.DotNet.Tools.MSBuild.MSBuildForwardingApp.GetMSBuildSDKsPath().
-        /// </remarks>
-        private static string GetMSBuildSDKsPath()
+        private static async Task<PhpSyntaxTree[]> ParseSourceFilesAsync(ProjectInstance projectInstance)
         {
-            string envMSBuildSDKsPath = Environment.GetEnvironmentVariable("MSBuildSDKsPath");
-            if (envMSBuildSDKsPath != null)
-            {
-                return envMSBuildSDKsPath;
-            }
+            // TODO: Determine the right files by inspecting the MSBuild project
+            string[] sourceFiles = Directory.GetFiles(projectInstance.Directory, "*.php", SearchOption.AllDirectories);
 
-            return Path.Combine(AppContext.BaseDirectory, "Sdks");
+            var syntaxTrees = new PhpSyntaxTree[sourceFiles.Length];
+
+            var tasks = Enumerable.Range(0, sourceFiles.Length).Select((i) => Task.Run(async () =>
+            {
+                string path = PathUtils.NormalizePath(sourceFiles[i]);
+                string code;
+                using (var reader = File.OpenText(path))
+                {
+                    code = await reader.ReadToEndAsync();
+                }
+                syntaxTrees[i] = PhpSyntaxTree.ParseCode(code, PhpParseOptions.Default, PhpParseOptions.Default, path);
+            })).ToArray();
+
+            await Task.WhenAll(tasks);
+
+            return syntaxTrees;
         }
     }
 }

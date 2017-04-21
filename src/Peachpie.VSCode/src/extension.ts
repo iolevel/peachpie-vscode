@@ -9,6 +9,7 @@ import * as cp from 'child_process';
 
 import { defaultTasksJson, defaultLaunchJson } from './defaults';
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
+import { workspace } from "vscode";
 
 let channel: vscode.OutputChannel;
 
@@ -106,18 +107,25 @@ function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposab
     // TODO: Handle the proper publishing of the executable
     let serverPath = context.asAbsolutePath("out/server/Peachpie.LanguageServer.dll");
     let serverOptions: ServerOptions = {
-		run : { command: "dotnet", args: [ serverPath ] },
+        run : { command: "dotnet", args: [ serverPath ] },
         debug: { command: "dotnet", args: [ serverPath, "--debug" ] }
-	}
+    }
 
     // Options to control the language client
-	let clientOptions: LanguageClientOptions = {
-		// Register the server for PHP documents
-		documentSelector: ['php']
-	}
+    let clientOptions: LanguageClientOptions = {
+        // Register the server for PHP documents
+        documentSelector: ['php'],
+        synchronize: {
+            // Notify the server when running dotnet restore on a project in the workspace
+            fileEvents: [
+                workspace.createFileSystemWatcher('**/project.assets.json'),
+                workspace.createFileSystemWatcher('**/*.msbuildproj')
+            ] 
+        }
+    }
 
     // Create the language client and start the server
-	return new LanguageClient('Peachpie Language Server', serverOptions, clientOptions).start();
+    return new LanguageClient('Peachpie Language Server', serverOptions, clientOptions).start();
 }
 
 function showInfo(message: string, doShowWindow = false) {
