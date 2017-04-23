@@ -57,7 +57,7 @@ namespace Peachpie.LanguageServer
                         break;
                     case "textDocument/didChange":
                         var changeParams = request.Params.ToObject<DidChangeTextDocumentParams>();
-                        ProcessDocumentChanges(changeParams);
+                        await ProcessDocumentChanges(changeParams);
                         break;
                     case "workspace/didChangeWatchedFiles":
                         var changeWatchedParams = request.Params.ToObject<DidChangeWatchedFilesParams>();
@@ -110,26 +110,34 @@ namespace Peachpie.LanguageServer
             _project.Initialize();
         }
 
-        private void ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
+        private async Task ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)
         {
-            string path = PathUtils.NormalizePath(changeParams.TextDocument.Uri);
-
-            // Don't care about the documents outside the current folder if it's opened
-            if (_rootPath != null && !path.StartsWith(_rootPath))
+            if (_project == null)
             {
-                return;
+                await TryReloadProjectAsync();
             }
 
-            // Similarly, ignore files outside the active project if opened
-            if (_project != null && !path.StartsWith(_project.RootPath))
+            if (_project != null)
             {
-                return;
+                string path = PathUtils.NormalizePath(changeParams.TextDocument.Uri);
+
+                // Don't care about the documents outside the current folder if it's opened
+                if (_rootPath != null && !path.StartsWith(_rootPath))
+                {
+                    return;
+                }
+
+                // Similarly, ignore files outside the active project if opened
+                if (!path.StartsWith(_project.RootPath))
+                {
+                    return;
+                }
+
+                // For now, only the full document synchronization works
+                string text = changeParams.ContentChanges[0].Text;
+
+                _project.UpdateFile(path, text);
             }
-
-            // For now, only the full document synchronization works
-            string text = changeParams.ContentChanges[0].Text;
-
-            _project.UpdateFile(path, text);
         }
 
         private void SendInitializationResponse(JsonRpc.RpcRequest request)

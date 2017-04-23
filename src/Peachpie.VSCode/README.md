@@ -40,6 +40,15 @@ Peachpie compiler is a work in progress, and thus many functionalities are not y
 
 ## Release Notes
 
+### 0.7.0
+- Re-enabled peachpie project diagnostics
+- New projects target Peachpie 0.7.0
+
+### 0.6.0
+- Support for new msbuild project format
+- `project.json` deprecated and removed
+- Updated `Create Project` command
+
 ### 0.5.0
 
 - New project refers to Peachpie 0.5.0
