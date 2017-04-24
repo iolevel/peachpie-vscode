@@ -12,6 +12,7 @@ using System.Xml;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using System.Threading;
+using Microsoft.Build.Logging;
 
 namespace Peachpie.LanguageServer
 {
@@ -159,7 +160,19 @@ namespace Peachpie.LanguageServer
             var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
 
             var buildManager = BuildManager.DefaultBuildManager;
-            var buildParameters = new BuildParameters(project.ProjectCollection);
+            var buildParameters = new BuildParameters(project.ProjectCollection)
+            {
+#if DEBUG
+                Loggers = new ILogger[]
+                {
+                    new FileLogger()
+                    {
+                        Verbosity = LoggerVerbosity.Detailed,
+                        Parameters = $"LogFile={project.DirectoryPath}\\build.log"
+                    }
+                }
+#endif
+            };
 
             await _buildManagerSemaphore.WaitAsync();
             try
