@@ -27,6 +27,8 @@ namespace Peachpie.LanguageServer
             DtdProcessing = DtdProcessing.Prohibit
         };
 
+        private const string LogFileName = "build.log";
+
         private static SemaphoreSlim _buildManagerSemaphore = new SemaphoreSlim(1);
 
         public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory)
@@ -160,19 +162,24 @@ namespace Peachpie.LanguageServer
             var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
 
             var buildManager = BuildManager.DefaultBuildManager;
-            var buildParameters = new BuildParameters(project.ProjectCollection)
-            {
+            var buildParameters = new BuildParameters(project.ProjectCollection);
+
 #if DEBUG
-                Loggers = new ILogger[]
+            // Log output in debug mode
+            string logFilePath = Path.Combine(
+                project.DirectoryPath,
+                projectInstance.GetPropertyValue("BaseIntermediateOutputPath"),   // "obj" subfolder
+                LogFileName);
+
+            buildParameters.Loggers = new ILogger[]
+            {
+                new FileLogger()
                 {
-                    new FileLogger()
-                    {
-                        Verbosity = LoggerVerbosity.Detailed,
-                        Parameters = $"LogFile={project.DirectoryPath}\\build.log"
-                    }
+                    Verbosity = LoggerVerbosity.Detailed,
+                    Parameters = $"LogFile={logFilePath}"
                 }
-#endif
             };
+#endif
 
             await _buildManagerSemaphore.WaitAsync();
             try
