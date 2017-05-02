@@ -29,6 +29,8 @@ namespace Peachpie.LanguageServer
 
         private const string LogFileName = "build.log";
 
+        private const string HelperReferenceReturnTarget = "ReturnReferences";
+
         private static SemaphoreSlim _buildManagerSemaphore = new SemaphoreSlim(1);
 
         public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory)
@@ -72,14 +74,13 @@ namespace Peachpie.LanguageServer
                     return null;
                 }
 
-                var projectInstance = await ResolveReferencesAsync(project);
-                if (projectInstance == null)
-                {
-                    return null;
-                }
+                SetupMultitargetingIfNecessary(project);
 
-                var metadataReferences = projectInstance.GetItems("ReferencePath")
-                    .Select(item => MetadataReference.CreateFromFile(item.EvaluatedInclude))
+                var buildResult = await ResolveReferencesAsync(project);
+                var projectInstance = buildResult.ProjectStateAfterBuild;
+
+                var metadataReferences = GatherReferences(project, projectInstance, buildResult)
+                    .Select(path => MetadataReference.CreateFromFile(path))
                     .ToArray();
 
                 if (metadataReferences.Length == 0)
@@ -100,7 +101,6 @@ namespace Peachpie.LanguageServer
 
                 var compilation = PhpCompilation.Create(
                     projectName,
-                    //ImmutableArray<PhpSyntaxTree>.Empty,
                     syntaxTrees,
                     metadataReferences,
                     options);
@@ -150,16 +150,30 @@ namespace Peachpie.LanguageServer
 
         private static bool IsPhpProject(Project project)
         {
-            // It understands the word after the last dot as a file extension, hence the concatenation
             return project.GetItems("DotNetCliToolReference")
-                .Any(item => item.GetMetadataValue("Filename") + item.GetMetadataValue("Extension") == "Peachpie.Compiler.Tools");
+                .Any(item => item.EvaluatedInclude == "Peachpie.Compiler.Tools");
         }
 
-        private static async Task<ProjectInstance> ResolveReferencesAsync(Project project)
+        private static bool IsMultitargetingProject(Project project)
         {
+            return project.GetPropertyValue("IsCrossTargetingBuild") == "true";
+        }
 
+        private static void SetupMultitargetingIfNecessary(Project project)
+        {
+            if (IsMultitargetingProject(project))
+            {
+                // Force DispatchToInnerBuilds target to run a helper target from Peachpie SDK instead of Build
+                project.SetProperty("InnerTargets", HelperReferenceReturnTarget);
+                project.ReevaluateIfNecessary();
+            }
+        }
+
+        private static async Task<BuildResult> ResolveReferencesAsync(Project project)
+        {
             var projectInstance = project.CreateProjectInstance();
-            var buildRequestData = new BuildRequestData(projectInstance, new string[] { "ResolveReferences" });
+            string target = IsMultitargetingProject(project) ? "DispatchToInnerBuilds" : "ResolveReferences";
+            var buildRequestData = new BuildRequestData(projectInstance, new string[] {  target });
 
             var buildManager = BuildManager.DefaultBuildManager;
             var buildParameters = new BuildParameters(project.ProjectCollection);
@@ -192,13 +206,13 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private static Task<ProjectInstance> RunBuildAsync(
+        private static Task<BuildResult> RunBuildAsync(
             ProjectInstance projectInstance,
             BuildRequestData buildRequestData,
             BuildManager buildManager,
             BuildParameters buildParameters)
         {
-            var taskSource = new TaskCompletionSource<ProjectInstance>();
+            var taskSource = new TaskCompletionSource<BuildResult>();
 
             buildManager.BeginBuild(buildParameters);
 
@@ -207,7 +221,9 @@ namespace Peachpie.LanguageServer
                 try
                 {
                     buildManager.EndBuild();
-                    taskSource.TrySetResult(projectInstance);
+
+                    sub.BuildResult.ProjectStateAfterBuild = projectInstance;
+                    taskSource.TrySetResult(sub.BuildResult);
                 }
                 catch (Exception e)
                 {
@@ -216,6 +232,29 @@ namespace Peachpie.LanguageServer
             }, null);
 
             return taskSource.Task;
+        }
+
+        private static IEnumerable<string> GatherReferences(
+            Project project,
+            ProjectInstance projectInstance,
+            BuildResult buildResult)
+        {
+            if (IsMultitargetingProject(project))
+            {
+                // Perform analysis always only on the first listed framework
+                string frameworks = project.GetPropertyValue("TargetFrameworks");
+                string firstFramework = frameworks.Split(';')[0];
+
+                // Filter all the resulting references from the DispatchToInnerBuilds target by framework
+                return buildResult.ResultsByTarget.First().Value.Items
+                    .Where(item => item.GetMetadata("TargetFramework") == firstFramework)
+                    .Select(item => item.ItemSpec);
+            }
+            else
+            {
+                return projectInstance.GetItems("ReferencePath")
+                    .Select(item => item.EvaluatedInclude);
+            }
         }
 
         private static async Task<PhpSyntaxTree[]> ParseSourceFilesAsync(ProjectInstance projectInstance)
