@@ -12,5 +12,8 @@ namespace Peachpie.LanguageServer.Protocol
     {
         [JsonProperty("textDocumentSync")]
         public int? TextDocumentSync { get; set; }
+
+        [JsonProperty("hoverProvider")]
+        public bool? HoverProvider { get; set; }
     }
 }

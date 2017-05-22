@@ -63,6 +63,10 @@ namespace Peachpie.LanguageServer
                         var changeWatchedParams = request.Params.ToObject<DidChangeWatchedFilesParams>();
                         await ProcessFileChangesAsync(changeWatchedParams);
                         break;
+                    case "textDocument/hover":
+                        var hoverParams = request.Params.ToObject<TextDocumentPositionParams>();
+                        ProcessHover(request.Id, hoverParams);
+                        break;
                     default:
                         break;
                 }
@@ -140,6 +144,25 @@ namespace Peachpie.LanguageServer
             }
         }
 
+        private void ProcessHover(object requestId, TextDocumentPositionParams hoverParams)
+        {
+            // TODO: Implement properly
+            var response = new Hover()
+            {
+                Contents = new MarkedString()
+                {
+                    Language = "php",
+                    Value = "(var) $x : int"
+                },
+                Range = new Range()
+                {
+                    Start = hoverParams.Position,
+                    End = hoverParams.Position
+                }
+            };
+            _messageWriter.WriteResponse(requestId, response);
+        }
+
         private void SendInitializationResponse(JsonRpc.RpcRequest request)
         {
             var initializeResult = new InitializeResult()
@@ -148,7 +171,8 @@ namespace Peachpie.LanguageServer
                 {
                     // Full content synchronization
                     // TODO: Introduce an enum for this
-                    TextDocumentSync = 1
+                    TextDocumentSync = 1,
+                    HoverProvider = true
                 }
             };
             _messageWriter.WriteResponse(request.Id, initializeResult);
