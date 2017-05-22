@@ -9,9 +9,9 @@ namespace Peachpie.LanguageServer.Protocol
     internal class Hover
     {
         [JsonProperty("contents")]
-        public MarkedString Contents { get; set; }
+        public MarkedString[] Contents { get; set; }
 
         [JsonProperty("range")]
-        public Range Range { get; set; }
+        public Range? Range { get; set; }
     }
 }

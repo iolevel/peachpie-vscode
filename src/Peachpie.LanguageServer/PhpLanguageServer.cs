@@ -146,20 +146,36 @@ namespace Peachpie.LanguageServer
 
         private void ProcessHover(object requestId, TextDocumentPositionParams hoverParams)
         {
-            // TODO: Implement properly
-            var response = new Hover()
+            string text = null;
+            if (_project != null)
             {
-                Contents = new MarkedString()
+                string filepath = PathUtils.NormalizePath(hoverParams.TextDocument.Uri);
+                text = _project.ObtainHoverHint(filepath, hoverParams.Position.Line, hoverParams.Position.Character);
+            }
+
+            Hover response;
+            if (text != null)
+            {
+                response = new Hover()
                 {
-                    Language = "php",
-                    Value = "(var) $x : int"
-                },
-                Range = new Range()
+                    Contents = new[]
+                    {
+                        new MarkedString()
+                        {
+                            Language = "php",
+                            Value = text
+                        }
+                    }
+                };
+            }
+            else
+            {
+                // Return empty response to hide the "Loading..." text in the box
+                response = new Hover()
                 {
-                    Start = hoverParams.Position,
-                    End = hoverParams.Position
-                }
-            };
+                    Contents = new MarkedString[] { }
+                };
+            }
             _messageWriter.WriteResponse(requestId, response);
         }
 

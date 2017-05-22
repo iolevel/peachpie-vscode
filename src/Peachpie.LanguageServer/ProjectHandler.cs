@@ -1,11 +1,14 @@
 ﻿using Microsoft.Build.Execution;
 using Microsoft.CodeAnalysis;
 using Pchp.CodeAnalysis;
+using Pchp.CodeAnalysis.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using Pchp.CodeAnalysis.Semantics;
+using Pchp.CodeAnalysis.Symbols;
 
 namespace Peachpie.LanguageServer
 {
@@ -90,6 +93,93 @@ namespace Peachpie.LanguageServer
 
                     _diagnosticBroker.UpdateCompilation(updatedCompilation);
                 }
+            }
+        }
+
+        public string ObtainHoverHint(string filepath, int line, int character)
+        {
+            // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
+            if (_diagnosticBroker.LastAnalysedCompilation == null
+                || _diagnosticBroker.LastAnalysedCompilation != _diagnosticBroker.Compilation)
+            {
+                return null;
+            }
+
+            var compilation = _diagnosticBroker.LastAnalysedCompilation;
+            string relativePath = PhpFileUtilities.GetRelativePath(filepath, this.RootPath);
+            var boundFile = compilation.SourceSymbolCollection.GetFile(relativePath);
+            if (boundFile == null)
+            {
+                return null;
+            }
+
+            var lineBreaks = boundFile.SyntaxTree.Source.LineBreaks;
+            if (line > lineBreaks.Count)
+            {
+                return null;
+            }
+
+            int lineStart = (line == 0) ? 0 : lineBreaks.EndOfLineBreak(line - 1);
+            int position = lineStart + character;
+            var searchVisitor = new PositionSearchVisitor(position);
+            foreach (var routine in boundFile.AllRoutines)
+            {
+                // Consider only routines containing the position being searched (<Main> has invalid span)
+                var routineSpan = routine.Syntax.BodySpanOrInvalid();
+                if (!routineSpan.IsValid || routineSpan.Contains(position))
+                {
+                    searchVisitor.VisitCFG(routine.ControlFlowGraph);
+                    if (searchVisitor.Result != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (searchVisitor.Result == null)
+            {
+                return null;
+            }
+
+            return FormulateHoverHint(searchVisitor.Result);
+        }
+
+        private string FormulateHoverHint(IPhpOperation operation)
+        {
+            if (operation is BoundVariableRef varRef && varRef.Name.IsDirect)
+            {
+                var text = new StringBuilder();
+
+                switch (varRef.Variable.VariableKind)
+                {
+                    case VariableKind.LocalVariable:
+                        text.Append("(local) ");
+                        break;
+                    case VariableKind.GlobalVariable:
+                        text.Append("global ");
+                        break;
+                    case VariableKind.Parameter:
+                        text.Append("(parameter) ");
+                        break;
+                    case VariableKind.ThisParameter:
+                        break;
+                    case VariableKind.StaticVariable:
+                        text.Append("(static) ");
+                        break;
+                    default:
+                        break;
+                }
+
+                text.Append($"${varRef.Name.NameValue.Value} : ");
+
+                // TODO: Display type information
+                text.Append("mixed");
+
+                return text.ToString();
+            }
+            else
+            {
+                return null;
             }
         }
 

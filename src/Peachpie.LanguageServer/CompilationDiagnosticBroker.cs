@@ -22,6 +22,8 @@ namespace Peachpie.LanguageServer
 
         public PhpCompilation Compilation { get; private set; }
 
+        public PhpCompilation LastAnalysedCompilation { get; private set; }
+
         public async void UpdateCompilation(PhpCompilation updatedCompilation)
         {
             Compilation = updatedCompilation;
@@ -38,9 +40,11 @@ namespace Peachpie.LanguageServer
             if (this.Compilation == updatedCompilation
                 && (_diagnosticTask == null || _diagnosticTask.IsCompleted))
             {
-                _diagnosticTask = this.Compilation.BindAndAnalyseTask();
+                var analysedCompilation = this.Compilation;
+                _diagnosticTask = analysedCompilation.BindAndAnalyseTask();
 
                 var diagnostics = await _diagnosticTask;
+                this.LastAnalysedCompilation = analysedCompilation;
                 _resultHandler(diagnostics);
 
                 // If the compilation was changed during the analysis, attempt to run it again (with respect to the delay),
