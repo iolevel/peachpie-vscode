@@ -9,6 +9,9 @@ using System.Linq;
 using System.Text;
 using Pchp.CodeAnalysis.Semantics;
 using Pchp.CodeAnalysis.Symbols;
+using Devsense.PHP.Syntax.Ast;
+using Devsense.PHP.Text;
+using Pchp.CodeAnalysis.FlowAnalysis;
 
 namespace Peachpie.LanguageServer
 {
@@ -125,12 +128,22 @@ namespace Peachpie.LanguageServer
             int position = lineStart + character;
             var searchVisitor = new PositionSearchVisitor(position);
             SourceRoutineSymbol resultRoutine = null;
+            ISymbol resultSymbol = null;
             foreach (var routine in boundFile.AllRoutines)
             {
-                // Consider only routines containing the position being searched (<Main> has invalid span)
-                var routineSpan = routine.Syntax.BodySpanOrInvalid();
-                if (!routineSpan.IsValid || routineSpan.Contains(position))
+                // Consider only routines containing the position being searched
+                var routineSpan = (routine.Syntax is LangElement elem) ? elem.Span : Span.Invalid;
+                if (routineSpan.Contains(position))
                 {
+                    // Search parameters at first
+                    resultSymbol = routine.SourceParameters.FirstOrDefault(p => p.Syntax.Span.Contains(position));
+                    if (resultSymbol != null)
+                    {
+                        resultRoutine = routine;
+                        break;
+                    }
+
+                    // Search the routine body
                     searchVisitor.VisitCFG(routine.ControlFlowGraph);
                     if (searchVisitor.Result != null)
                     {
@@ -140,62 +153,94 @@ namespace Peachpie.LanguageServer
                 }
             }
 
-            if (searchVisitor.Result == null)
+            if (resultSymbol == null && searchVisitor.Result == null)
             {
                 return null;
             }
 
-            return FormulateHoverHint(resultRoutine, searchVisitor.Result);
+            return FormulateHoverHint(resultRoutine, resultSymbol, searchVisitor.Result);
         }
 
-        private string FormulateHoverHint(SourceRoutineSymbol routine, IPhpOperation operation)
+        /// <summary>
+        /// Creates the text of a hint. Either <paramref name="symbol"/> or <paramref name="operation"/> is expected.
+        /// </summary>
+        private string FormulateHoverHint(SourceRoutineSymbol routine, ISymbol symbol, IPhpOperation operation)
         {
-            if (operation is BoundVariableRef varRef && varRef.Name.IsDirect)
+            if (symbol is SourceParameterSymbol parameter)
             {
-                var text = new StringBuilder();
+                var variableKind = VariableKind.Parameter;
+                string name = symbol.Name;
+                TypeRefMask typeMask;
 
-                switch (varRef.Variable.VariableKind)
+                // Try to get the proper paramater type information from the start of the CFG
+                var startState = routine.ControlFlowGraph?.Start?.FlowState;
+                if (startState != null)
                 {
-                    case VariableKind.LocalVariable:
-                        text.Append("(local) ");
-                        break;
-                    case VariableKind.GlobalVariable:
-                        text.Append("global ");
-                        break;
-                    case VariableKind.Parameter:
-                        text.Append("(parameter) ");
-                        break;
-                    case VariableKind.ThisParameter:
-                        break;
-                    case VariableKind.StaticVariable:
-                        text.Append("(static) ");
-                        break;
-                    default:
-                        break;
-                }
-
-                text.Append($"${varRef.Name.NameValue.Value} : ");
-
-                if (varRef.TypeRefMask.IsAnyType)
-                {
-                    text.Append("mixed");
+                    var handle = startState.GetLocalHandle(name);
+                    typeMask = startState.GetLocalType(handle);
                 }
                 else
                 {
-                    // Display types ordered alphabetically, duplicate types (such as PHP and .NET "string") are unified
-                    var types = routine.TypeRefContext.GetTypes(varRef.TypeRefMask);
-                    var typeNames = types
-                        .Select(t => t.QualifiedName.ToString())
-                        .ToImmutableSortedSet();
-                    text.Append(string.Join(" | ", typeNames)); 
+                    // TODO: Handle properly (e.g. in well-annotated abstract methods)
+                    typeMask = TypeRefMask.AnyType;
                 }
 
-                return text.ToString();
+                return FormulateVariableHint(routine, variableKind, name, typeMask);
+            }
+            else if (operation is BoundVariableRef varRef && varRef.Name.IsDirect)
+            {
+                var variableKind = varRef.Variable.VariableKind;
+                string name = varRef.Name.NameValue.Value;
+                var typeMask = varRef.TypeRefMask;
+
+                return FormulateVariableHint(routine, variableKind, name, typeMask);
             }
             else
             {
                 return null;
             }
+        }
+
+        private static string FormulateVariableHint(SourceRoutineSymbol routine, VariableKind variableKind, string name, TypeRefMask typeRefMask)
+        {
+            var text = new StringBuilder();
+
+            switch (variableKind)
+            {
+                case VariableKind.LocalVariable:
+                    text.Append("(local) ");
+                    break;
+                case VariableKind.GlobalVariable:
+                    text.Append("global ");
+                    break;
+                case VariableKind.Parameter:
+                    text.Append("(parameter) ");
+                    break;
+                case VariableKind.ThisParameter:
+                    break;
+                case VariableKind.StaticVariable:
+                    text.Append("(static) ");
+                    break;
+                default:
+                    break;
+            }
+
+            text.Append($"${name} : ");
+            if (typeRefMask.IsAnyType)
+            {
+                text.Append("mixed");
+            }
+            else
+            {
+                // Display types ordered alphabetically, duplicate types (such as PHP and .NET "string") are unified
+                var types = routine.TypeRefContext.GetTypes(typeRefMask);
+                var typeNames = types
+                    .Select(t => t.QualifiedName.ToString())
+                    .ToImmutableSortedSet();
+                text.Append(string.Join(" | ", typeNames));
+            }
+
+            return text.ToString();
         }
 
         private void HandleCompilationDiagnostics(IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
