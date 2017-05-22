@@ -105,6 +105,7 @@ namespace Peachpie.LanguageServer
                 return null;
             }
 
+            // Find the symbols gathered from the given source code
             var compilation = _diagnosticBroker.LastAnalysedCompilation;
             string relativePath = PhpFileUtilities.GetRelativePath(filepath, this.RootPath);
             var boundFile = compilation.SourceSymbolCollection.GetFile(relativePath);
@@ -119,9 +120,11 @@ namespace Peachpie.LanguageServer
                 return null;
             }
 
+            // Find the bound node corresponding to the text position
             int lineStart = (line == 0) ? 0 : lineBreaks.EndOfLineBreak(line - 1);
             int position = lineStart + character;
             var searchVisitor = new PositionSearchVisitor(position);
+            SourceRoutineSymbol resultRoutine = null;
             foreach (var routine in boundFile.AllRoutines)
             {
                 // Consider only routines containing the position being searched (<Main> has invalid span)
@@ -131,6 +134,7 @@ namespace Peachpie.LanguageServer
                     searchVisitor.VisitCFG(routine.ControlFlowGraph);
                     if (searchVisitor.Result != null)
                     {
+                        resultRoutine = routine;
                         break;
                     }
                 }
@@ -141,10 +145,10 @@ namespace Peachpie.LanguageServer
                 return null;
             }
 
-            return FormulateHoverHint(searchVisitor.Result);
+            return FormulateHoverHint(resultRoutine, searchVisitor.Result);
         }
 
-        private string FormulateHoverHint(IPhpOperation operation)
+        private string FormulateHoverHint(SourceRoutineSymbol routine, IPhpOperation operation)
         {
             if (operation is BoundVariableRef varRef && varRef.Name.IsDirect)
             {
@@ -172,8 +176,19 @@ namespace Peachpie.LanguageServer
 
                 text.Append($"${varRef.Name.NameValue.Value} : ");
 
-                // TODO: Display type information
-                text.Append("mixed");
+                if (varRef.TypeRefMask.IsAnyType)
+                {
+                    text.Append("mixed");
+                }
+                else
+                {
+                    // Display types ordered alphabetically, duplicate types (such as PHP and .NET "string") are unified
+                    var types = routine.TypeRefContext.GetTypes(varRef.TypeRefMask);
+                    var typeNames = types
+                        .Select(t => t.QualifiedName.ToString())
+                        .ToImmutableSortedSet();
+                    text.Append(string.Join(" | ", typeNames)); 
+                }
 
                 return text.ToString();
             }

@@ -28,7 +28,8 @@ namespace Peachpie.LanguageServer
 
         protected override void VisitCFGBlockInternal(BoundBlock x)
         {
-            if (x.Tag != _visitedColor)
+            // Prevent infinite loop and stop searching after finding the result
+            if (x.Tag != _visitedColor && this.Result == null)
             {
                 x.Tag = _visitedColor;
                 base.VisitCFGBlockInternal(x); 
