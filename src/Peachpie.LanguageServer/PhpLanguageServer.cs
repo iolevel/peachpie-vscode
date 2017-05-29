@@ -150,7 +150,7 @@ namespace Peachpie.LanguageServer
             if (_project != null)
             {
                 string filepath = PathUtils.NormalizePath(hoverParams.TextDocument.Uri);
-                text = _project.ObtainHoverHint(filepath, hoverParams.Position.Line, hoverParams.Position.Character);
+                text = _project.ObtainToolTip(filepath, hoverParams.Position.Line, hoverParams.Position.Character);
             }
 
             Hover response;

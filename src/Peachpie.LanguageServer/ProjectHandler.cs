@@ -12,6 +12,7 @@ using Pchp.CodeAnalysis.Symbols;
 using Devsense.PHP.Syntax.Ast;
 using Devsense.PHP.Text;
 using Pchp.CodeAnalysis.FlowAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Peachpie.LanguageServer
 {
@@ -99,7 +100,7 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        public string ObtainHoverHint(string filepath, int line, int character)
+        public string ObtainToolTip(string filepath, int line, int character)
         {
             // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
             if (_diagnosticBroker.LastAnalysedCompilation == null
@@ -110,28 +111,25 @@ namespace Peachpie.LanguageServer
 
             // Find the symbols gathered from the given source code
             var compilation = _diagnosticBroker.LastAnalysedCompilation;
-            string relativePath = PhpFileUtilities.GetRelativePath(filepath, this.RootPath);
-            var boundFile = compilation.SourceSymbolCollection.GetFile(relativePath);
-            if (boundFile == null)
+            var tree = compilation.SyntaxTrees.FirstOrDefault(t => t.FilePath == filepath);
+            if (tree == null)
             {
                 return null;
             }
 
-            var lineBreaks = boundFile.SyntaxTree.Source.LineBreaks;
-            if (line > lineBreaks.Count)
+            // Get the position in the file
+            int position = tree.GetPosition(new LinePosition(line, character));
+            if (position == -1)
             {
                 return null;
             }
 
             // Find the bound node corresponding to the text position
-            int lineStart = (line == 0) ? 0 : lineBreaks.EndOfLineBreak(line - 1);
-            int position = lineStart + character;
             SourceSymbolSearcher.SymbolStat searchResult = null;
-            foreach (var routine in boundFile.AllRoutines)
+            foreach (var routine in compilation.GetUserDeclaredRoutinesInFile(tree))
             {
-                // Consider only routines containing the position being searched (<Main> has invalid span)
-                var routineSpan = (routine.Syntax is LangElement elem) ? elem.Span : Span.Invalid;
-                if (!routineSpan.IsValid || routineSpan.Contains(position))
+                // Consider only routines containing the position being searched (<Main> has span [0..0])
+                if (routine.IsGlobalScope || routine.GetSpan().Contains(position))
                 {
                     // Search parameters at first
                     searchResult = SourceSymbolSearcher.SearchParameters(routine, position);
@@ -154,13 +152,13 @@ namespace Peachpie.LanguageServer
                 return null;
             }
 
-            return FormulateHoverHint(searchResult);
+            return FormulateToolTip(searchResult);
         }
 
         /// <summary>
         /// Creates the text of a hint. Either <paramref name="symbol"/> or <paramref name="operation"/> is expected.
         /// </summary>
-        private string FormulateHoverHint(SourceSymbolSearcher.SymbolStat searchResult)
+        private string FormulateToolTip(SourceSymbolSearcher.SymbolStat searchResult)
         {
             if (searchResult.BoundExpression is BoundVariableRef varRef && varRef.Name.IsDirect)
             {
@@ -169,16 +167,16 @@ namespace Peachpie.LanguageServer
                 string name = varRef.Name.NameValue.Value;
                 var typeMask = varRef.TypeRefMask;
 
-                return FormulateVariableHint(searchResult.TypeCtx, variableKind, name, typeMask);
+                return FormulateVariableToolTip(searchResult.TypeCtx, variableKind, name, typeMask);
             }
-            else if (searchResult.Symbol is ParameterSymbol parameter)
+            else if (searchResult.Symbol is IParameterSymbol parameter)
             {
                 // Parameter definition
                 var variableKind = VariableKind.Parameter;
                 string name = searchResult.Symbol.Name;
-                TypeRefMask typeMask = parameter.GetResultType(searchResult.TypeCtx);
+                TypeRefMask typeMask = ((IPhpValue)parameter).GetResultType(searchResult.TypeCtx);
 
-                return FormulateVariableHint(searchResult.TypeCtx, variableKind, name, typeMask);
+                return FormulateVariableToolTip(searchResult.TypeCtx, variableKind, name, typeMask);
             }
             else
             {
@@ -186,7 +184,7 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private static string FormulateVariableHint(TypeRefContext typeContext, VariableKind variableKind, string name, TypeRefMask typeRefMask)
+        private static string FormulateVariableToolTip(TypeRefContext typeContext, VariableKind variableKind, string name, TypeRefMask typeRefMask)
         {
             var text = new StringBuilder();
 

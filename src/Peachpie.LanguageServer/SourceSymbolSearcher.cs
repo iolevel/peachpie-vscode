@@ -49,12 +49,13 @@ namespace Peachpie.LanguageServer
             return visitor._result;
         }
 
-        public static SymbolStat SearchParameters(SourceRoutineSymbol routine, int position)
+        public static SymbolStat SearchParameters(IPhpRoutineSymbol routine, int position)
         {
-            var parameter = routine.SourceParameters.FirstOrDefault(p => p.Syntax.Span.Contains(position));
+            var parameter = routine.Parameters.FirstOrDefault(p => p.GetSpan().Contains(position));
             if (parameter != null)
             {
-                return new SymbolStat(routine.TypeRefContext, parameter.Syntax.Span, null, parameter);
+                TypeRefContext typeCtx = routine.ControlFlowGraph?.FlowContext?.TypeRefContext;
+                return new SymbolStat(typeCtx, parameter.GetSpan(), null, parameter);
             }
             else
             {
@@ -197,7 +198,7 @@ namespace Peachpie.LanguageServer
             }
 
             //
-            base.VisitFieldRef(x); 
+            base.VisitFieldRef(x);
         }
     }
 }
