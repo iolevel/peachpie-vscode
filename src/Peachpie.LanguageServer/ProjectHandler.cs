@@ -126,74 +126,59 @@ namespace Peachpie.LanguageServer
             // Find the bound node corresponding to the text position
             int lineStart = (line == 0) ? 0 : lineBreaks.EndOfLineBreak(line - 1);
             int position = lineStart + character;
-            var searchVisitor = new PositionSearchVisitor(position);
-            SourceRoutineSymbol resultRoutine = null;
-            ISymbol resultSymbol = null;
+            SourceSymbolSearcher.SymbolStat searchResult = null;
             foreach (var routine in boundFile.AllRoutines)
             {
-                // Consider only routines containing the position being searched
+                // Consider only routines containing the position being searched (<Main> has invalid span)
                 var routineSpan = (routine.Syntax is LangElement elem) ? elem.Span : Span.Invalid;
-                if (routineSpan.Contains(position))
+                if (!routineSpan.IsValid || routineSpan.Contains(position))
                 {
                     // Search parameters at first
-                    resultSymbol = routine.SourceParameters.FirstOrDefault(p => p.Syntax.Span.Contains(position));
-                    if (resultSymbol != null)
+                    searchResult = SourceSymbolSearcher.SearchParameters(routine, position);
+                    if (searchResult != null)
                     {
-                        resultRoutine = routine;
                         break;
                     }
 
                     // Search the routine body
-                    searchVisitor.VisitCFG(routine.ControlFlowGraph);
-                    if (searchVisitor.Result != null)
+                    searchResult = SourceSymbolSearcher.SearchCFG(routine.ControlFlowGraph, position);
+                    if (searchResult != null)
                     {
-                        resultRoutine = routine;
                         break;
                     }
                 }
             }
 
-            if (resultSymbol == null && searchVisitor.Result == null)
+            if (searchResult == null)
             {
                 return null;
             }
 
-            return FormulateHoverHint(resultRoutine, resultSymbol, searchVisitor.Result);
+            return FormulateHoverHint(searchResult);
         }
 
         /// <summary>
         /// Creates the text of a hint. Either <paramref name="symbol"/> or <paramref name="operation"/> is expected.
         /// </summary>
-        private string FormulateHoverHint(SourceRoutineSymbol routine, ISymbol symbol, IPhpOperation operation)
+        private string FormulateHoverHint(SourceSymbolSearcher.SymbolStat searchResult)
         {
-            if (symbol is SourceParameterSymbol parameter)
+            if (searchResult.BoundExpression is BoundVariableRef varRef && varRef.Name.IsDirect)
             {
-                var variableKind = VariableKind.Parameter;
-                string name = symbol.Name;
-                TypeRefMask typeMask;
-
-                // Try to get the proper paramater type information from the start of the CFG
-                var startState = routine.ControlFlowGraph?.Start?.FlowState;
-                if (startState != null)
-                {
-                    var handle = startState.GetLocalHandle(name);
-                    typeMask = startState.GetLocalType(handle);
-                }
-                else
-                {
-                    // TODO: Handle properly (e.g. in well-annotated abstract methods)
-                    typeMask = TypeRefMask.AnyType;
-                }
-
-                return FormulateVariableHint(routine, variableKind, name, typeMask);
-            }
-            else if (operation is BoundVariableRef varRef && varRef.Name.IsDirect)
-            {
+                // Usage of variable or parameter
                 var variableKind = varRef.Variable.VariableKind;
                 string name = varRef.Name.NameValue.Value;
                 var typeMask = varRef.TypeRefMask;
 
-                return FormulateVariableHint(routine, variableKind, name, typeMask);
+                return FormulateVariableHint(searchResult.TypeCtx, variableKind, name, typeMask);
+            }
+            else if (searchResult.Symbol is ParameterSymbol parameter)
+            {
+                // Parameter definition
+                var variableKind = VariableKind.Parameter;
+                string name = searchResult.Symbol.Name;
+                TypeRefMask typeMask = parameter.GetResultType(searchResult.TypeCtx);
+
+                return FormulateVariableHint(searchResult.TypeCtx, variableKind, name, typeMask);
             }
             else
             {
@@ -201,44 +186,31 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private static string FormulateVariableHint(SourceRoutineSymbol routine, VariableKind variableKind, string name, TypeRefMask typeRefMask)
+        private static string FormulateVariableHint(TypeRefContext typeContext, VariableKind variableKind, string name, TypeRefMask typeRefMask)
         {
             var text = new StringBuilder();
 
             switch (variableKind)
             {
                 case VariableKind.LocalVariable:
-                    text.Append("(local) ");
+                    text.Append("(var) ");
                     break;
                 case VariableKind.GlobalVariable:
-                    text.Append("global ");
+                    text.Append("(global) ");
                     break;
                 case VariableKind.Parameter:
                     text.Append("(parameter) ");
                     break;
-                case VariableKind.ThisParameter:
-                    break;
                 case VariableKind.StaticVariable:
-                    text.Append("(static) ");
+                    text.Append("(static local) ");
                     break;
+                case VariableKind.ThisParameter:
                 default:
                     break;
             }
 
-            text.Append($"${name} : ");
-            if (typeRefMask.IsAnyType)
-            {
-                text.Append("mixed");
-            }
-            else
-            {
-                // Display types ordered alphabetically, duplicate types (such as PHP and .NET "string") are unified
-                var types = routine.TypeRefContext.GetTypes(typeRefMask);
-                var typeNames = types
-                    .Select(t => t.QualifiedName.ToString())
-                    .ToImmutableSortedSet();
-                text.Append(string.Join(" | ", typeNames));
-            }
+            string types = typeContext.ToString(typeRefMask);
+            text.Append($"${name} : {types}");
 
             return text.ToString();
         }
