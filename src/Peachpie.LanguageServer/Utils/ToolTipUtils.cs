@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Devsense.PHP.Syntax;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Pchp.CodeAnalysis;
 using Pchp.CodeAnalysis.FlowAnalysis;
@@ -6,8 +7,10 @@ using Pchp.CodeAnalysis.Semantics;
 using Pchp.CodeAnalysis.Symbols;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Peachpie.LanguageServer
 {
@@ -67,57 +70,208 @@ namespace Peachpie.LanguageServer
         /// </summary>
         private static string FormulateToolTip(SourceSymbolSearcher.SymbolStat searchResult)
         {
-            if (searchResult.BoundExpression is BoundVariableRef varRef && varRef.Name.IsDirect)
+            if (searchResult.Symbol == null && searchResult.BoundExpression == null)
             {
-                // Usage of variable or parameter
-                var variableKind = varRef.Variable.VariableKind;
-                string name = varRef.Name.NameValue.Value;
-                var typeMask = varRef.TypeRefMask;
-
-                return FormulateVariableToolTip(searchResult.TypeCtx, variableKind, name, typeMask);
+                return null;
             }
-            else if (searchResult.Symbol is IParameterSymbol parameter)
-            {
-                // Parameter definition
-                var variableKind = VariableKind.Parameter;
-                string name = searchResult.Symbol.Name;
-                TypeRefMask typeMask = ((IPhpValue)parameter).GetResultType(searchResult.TypeCtx);
 
-                return FormulateVariableToolTip(searchResult.TypeCtx, variableKind, name, typeMask);
+            var ctx = searchResult.TypeCtx;
+            var expression = searchResult.BoundExpression;
+            var symbol = searchResult.Symbol;
+            if (symbol is IErrorMethodSymbol errSymbol)
+            {
+                if (errSymbol.ErrorKind == ErrorMethodKind.Missing)
+                {
+                    return null;
+                }
+
+                symbol = errSymbol.OriginalSymbols.LastOrDefault();
+            }
+
+            var result = new StringBuilder(32);
+
+            if (expression is BoundVariableRef)
+            {
+                var name = ((BoundVariableRef)expression).Name.NameValue.Value;
+                if (name != null)
+                {
+                    switch ((((BoundVariableRef)expression).Variable).VariableKind)
+                    {
+                        case VariableKind.LocalVariable:
+                            result.Append("(var)"); break;
+                        case VariableKind.Parameter:
+                            result.Append("(parameter)"); break;
+                        case VariableKind.GlobalVariable:
+                            result.Append("(global)"); break;
+                        case VariableKind.StaticVariable:
+                            result.Append("(static local)"); break;
+                    }
+
+                    result.Append(' ');
+                    result.Append("$" + name);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else if (expression is BoundGlobalConst)
+            {
+                result.Append("(const) ");
+                result.Append(((BoundGlobalConst)expression).Name);
+            }
+            else if (expression is BoundPseudoConst)
+            {
+                result.Append("(magic const) ");
+                result.Append("__");
+                result.Append(((BoundPseudoConst)expression).Type.ToString().ToUpperInvariant());
+                result.Append("__");
+            }
+            else if (symbol is IParameterSymbol)
+            {
+                result.Append("(parameter) ");
+                result.Append("$" + symbol.Name);
+            }
+            else if (symbol is IPhpRoutineSymbol)
+            {
+                var routine = (IPhpRoutineSymbol)symbol;
+                result.Append("function ");
+                result.Append(routine.RoutineName);
+                result.Append('(');
+                int nopt = 0;
+                bool first = true;
+                foreach (var p in routine.Parameters)
+                {
+                    if (p.IsImplicitlyDeclared) continue;
+                    if (p.IsOptional)
+                    {
+                        nopt++;
+                        result.Append('[');
+                    }
+                    if (first) first = false;
+                    else result.Append(", ");
+
+                    result.Append("$" + p.Name);
+                }
+                while (nopt-- > 0) { result.Append(']'); }
+                result.Append(')');
+            }
+            else if (expression is BoundFieldRef)
+            {
+                var fld = (BoundFieldRef)expression;
+                if (fld.FieldName.IsDirect)
+                {
+                    string containedType = null;
+
+                    if (fld.IsClassConstant)
+                    {
+                        result.Append("(const)");
+                    }
+                    else
+                    {
+                        result.Append(fld.IsStaticField ? "static" : "var");
+                    };
+
+                    if (fld.ParentType != null && fld.ParentType.IsDirect)
+                    {
+                        containedType = fld.ParentType.TypeRef.ToString();
+                    }
+                    else if (fld.Instance != null)
+                    {
+                        if (fld.Instance.TypeRefMask.IsAnyType || fld.Instance.TypeRefMask.IsVoid) return null;
+
+                        containedType = ctx.ToString(fld.Instance.TypeRefMask);
+                    }
+
+                    result.Append(' ');
+                    if (containedType != null)
+                    {
+                        result.Append(containedType);
+                        result.Append(Name.ClassMemberSeparator);
+                    }
+                    if (!fld.IsClassConstant)
+                    {
+                        result.Append("$");
+                    }
+                    result.Append(fld.FieldName.NameValue.Value);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else if (symbol is IPhpTypeSymbol)
+            {
+                var phpt = (IPhpTypeSymbol)symbol;
+                if (phpt.TypeKind == TypeKind.Interface) result.Append("interface");
+                else if (phpt.IsTrait) result.Append("trait");
+                else result.Append("class");
+
+                result.Append(' ');
+                result.Append(phpt.FullName.ToString());
             }
             else
             {
                 return null;
             }
-        }
 
-        private static string FormulateVariableToolTip(TypeRefContext typeContext, VariableKind variableKind, string name, TypeRefMask typeRefMask)
-        {
-            var text = new StringBuilder();
-
-            switch (variableKind)
+            // : type
+            if (ctx != null)
             {
-                case VariableKind.LocalVariable:
-                    text.Append("(var) ");
-                    break;
-                case VariableKind.GlobalVariable:
-                    text.Append("(global) ");
-                    break;
-                case VariableKind.Parameter:
-                    text.Append("(parameter) ");
-                    break;
-                case VariableKind.StaticVariable:
-                    text.Append("(static local) ");
-                    break;
-                case VariableKind.ThisParameter:
-                default:
-                    break;
+                TypeRefMask? mask = null;
+
+                if (expression != null)
+                {
+                    mask = expression.TypeRefMask;
+                }
+                else if (symbol is IPhpValue resultVal)
+                {
+                    mask = resultVal.GetResultType(ctx);
+                }
+
+                if (mask != null)
+                {
+                    result.Append(" : ");
+                    result.Append(ctx.ToString(mask.Value));
+                }
             }
 
-            string types = typeContext.ToString(typeRefMask);
-            text.Append($"${name} : {types}");
+            // constant value
+            if (expression != null && expression.ConstantValue.HasValue)
+            {
+                //  = <value>
+                var value = expression.ConstantValue.Value;
+                string valueStr = null;
+                if (value == null) valueStr = "NULL";
+                else if (value is int) valueStr = ((int)value).ToString();
+                else if (value is string) valueStr = "\"" + ((string)value).Replace("\"", "\\\"").Replace("\n", "\\n") + "\"";
+                else if (value is long) valueStr = ((long)value).ToString();
+                else if (value is double) valueStr = ((double)value).ToString(CultureInfo.InvariantCulture);
+                else if (value is bool) valueStr = (bool)value ? "TRUE" : "FALSE";
 
-            return text.ToString();
+                if (valueStr != null)
+                {
+                    result.Append(" = ");
+                    result.Append(valueStr);
+                }
+            }
+
+            // description
+            var docxml = symbol?.GetDocumentationCommentXml();
+            //if (docxml != null)
+            //{
+            //    // remove wellknown ctx parameter // TODO: other implicit parameters
+            //    docxml = Regex.Replace(docxml, @"<param\sname=\""ctx\"">[^<]+</param>", "");
+            //}
+
+            if (!string.IsNullOrWhiteSpace(docxml))
+            {
+                docxml = Regex.Replace(docxml, @"\<param\sname=\""(\w+)\""\>", "<param><strong>$$$1:</strong> ");
+                result.Append(docxml);
+            }
+
+            //
+            return result.ToString();
         }
     }
 }
