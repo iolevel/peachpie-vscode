@@ -28,7 +28,7 @@ namespace Peachpie.LanguageServer
             }
 
             // Get the position in the file
-            int position = tree.GetPosition(new LinePosition(line, character));
+            int position = tree.GetOffset(new LinePosition(line, character));
             if (position == -1)
             {
                 return null;
