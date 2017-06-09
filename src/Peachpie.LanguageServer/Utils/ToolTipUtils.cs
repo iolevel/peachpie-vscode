@@ -19,7 +19,7 @@ namespace Peachpie.LanguageServer
         /// <summary>
         /// Returns the text of a tooltip corresponding to the given position in the code.
         /// </summary>
-        public static string ObtainToolTip(PhpCompilation compilation, string filepath, int line, int character)
+        public static ToolTipInfo ObtainToolTip(PhpCompilation compilation, string filepath, int line, int character)
         {
             var tree = compilation.SyntaxTrees.FirstOrDefault(t => t.FilePath == filepath);
             if (tree == null)
@@ -68,7 +68,7 @@ namespace Peachpie.LanguageServer
         /// <summary>
         /// Creates the text of a tooltip.
         /// </summary>
-        private static string FormulateToolTip(SourceSymbolSearcher.SymbolStat searchResult)
+        private static ToolTipInfo FormulateToolTip(SourceSymbolSearcher.SymbolStat searchResult)
         {
             if (searchResult.Symbol == null && searchResult.BoundExpression == null)
             {
@@ -257,7 +257,7 @@ namespace Peachpie.LanguageServer
             }
 
             // description
-            var docxml = symbol?.GetDocumentationCommentXml();
+            string docxml = symbol?.GetDocumentationCommentXml();
             //if (docxml != null)
             //{
             //    // remove wellknown ctx parameter // TODO: other implicit parameters
@@ -266,12 +266,11 @@ namespace Peachpie.LanguageServer
 
             if (!string.IsNullOrWhiteSpace(docxml))
             {
-                docxml = Regex.Replace(docxml, @"\<param\sname=\""(\w+)\""\>", "<param><strong>$$$1:</strong> ");
-                result.Append(docxml);
+                docxml = Regex.Replace(docxml, @"\<param\sname=\""(\w+)\""\>", "$$$1: ");
             }
 
             //
-            return result.ToString();
+            return new ToolTipInfo(result.ToString(), !string.IsNullOrWhiteSpace(docxml) ? docxml : null);
         }
     }
 }

@@ -8,8 +8,11 @@ namespace Peachpie.LanguageServer.Protocol
     [JsonObject]
     internal class Hover
     {
+        /// <summary>
+        /// Elements are either of type <see cref="MarkedString"/> or <see cref="string"/>.
+        /// </summary>
         [JsonProperty("contents")]
-        public MarkedString[] Contents { get; set; }
+        public object[] Contents { get; set; }
 
         [JsonProperty("range")]
         public Range? Range { get; set; }

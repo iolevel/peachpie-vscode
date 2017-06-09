@@ -100,7 +100,7 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        public string ObtainToolTip(string filepath, int line, int character)
+        public ToolTipInfo ObtainToolTip(string filepath, int line, int character)
         {
             // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
             if (_diagnosticBroker.LastAnalysedCompilation == null

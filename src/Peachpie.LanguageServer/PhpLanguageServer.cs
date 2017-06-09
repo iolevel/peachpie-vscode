@@ -146,26 +146,27 @@ namespace Peachpie.LanguageServer
 
         private void ProcessHover(object requestId, TextDocumentPositionParams hoverParams)
         {
-            string text = null;
+            ToolTipInfo tooltip = null;
             if (_project != null)
             {
                 string filepath = PathUtils.NormalizePath(hoverParams.TextDocument.Uri);
-                text = _project.ObtainToolTip(filepath, hoverParams.Position.Line, hoverParams.Position.Character);
+                tooltip = _project.ObtainToolTip(filepath, hoverParams.Position.Line, hoverParams.Position.Character);
             }
 
             Hover response;
-            if (text != null)
+            if (tooltip != null)
             {
+                var codePart = new MarkedString()
+                {
+                    Language = "php",
+                    Value = tooltip.Code
+                };
+                
                 response = new Hover()
                 {
-                    Contents = new[]
-                    {
-                        new MarkedString()
-                        {
-                            Language = "php",
-                            Value = text
-                        }
-                    }
+                    Contents = (tooltip.Description != null) ?
+                        new object[] { codePart, tooltip.Description }
+                        : new object[] { codePart }
                 };
             }
             else
@@ -173,7 +174,7 @@ namespace Peachpie.LanguageServer
                 // Return empty response to hide the "Loading..." text in the box
                 response = new Hover()
                 {
-                    Contents = new MarkedString[] { }
+                    Contents = new object[] { }
                 };
             }
             _messageWriter.WriteResponse(requestId, response);
