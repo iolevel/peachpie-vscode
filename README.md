@@ -5,7 +5,7 @@
 
 # Peachpie Visual Studio Code Extension
 This repository contains the projects necessary for the integration into Visual Studio Code.
-See the [repository of Peachpie - The PHP Compiler and Runtime for .NET](https://github.com/iolevel/peachpie) for more information about the whole project.
+See the [repository of Peachpie - The PHP Compiler and Runtime for .NET](https://github.com/peachpiecompiler/peachpie) for more information about the whole project.
 
 ## Folder Structure
 
