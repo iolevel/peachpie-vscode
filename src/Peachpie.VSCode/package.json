@@ -11,7 +11,7 @@
         "color": "#FFAC00",
         "theme": "light"
     },
-    "homepage": "http://peachpie.io",
+    "homepage": "http://www.peachpie.io",
     "repository": {
         "type": "git",
         "url": "https://github.com/peachpiecompiler/peachpie.git"

@@ -40,6 +40,9 @@ Peachpie compiler is a work in progress, and thus many functionalities are not y
 
 ## Release Notes
 
+### 0.8.0
+- Projects target Peachpie 0.8.0
+
 ### 0.7.0
 - Re-enabled peachpie project diagnostics
 - New projects target Peachpie 0.7.0
