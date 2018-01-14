@@ -40,6 +40,11 @@ Peachpie compiler is a work in progress, and thus many functionalities are not y
 
 ## Release Notes
 
+### 0.9.0
+- Project template targets Peachpie 0.9.0
+- a lot more diagnostics
+- Peachpie 0.9.0 enhancements includes traits, generators, compiler fixes
+
 ### 0.8.0
 - Projects target Peachpie 0.8.0
 
