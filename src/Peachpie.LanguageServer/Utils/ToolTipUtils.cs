@@ -172,9 +172,9 @@ namespace Peachpie.LanguageServer
                         result.Append(fld.IsStaticField ? "static" : "var");
                     };
 
-                    if (fld.ParentType != null && fld.ParentType.IsDirect)
+                    if (fld.ContainingType != null && fld.ContainingType.IsDirect)
                     {
-                        containedType = fld.ParentType.TypeRef.ToString();
+                        containedType = fld.ContainingType.TypeRef.ToString();
                     }
                     else if (fld.Instance != null)
                     {
