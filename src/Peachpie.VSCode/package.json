@@ -1,87 +1,91 @@
 {
-    "name": "peachpie-vscode",
-    "displayName": "Peachpie for Visual Studio Code",
-    "description": "Visual Studio Code extension for Peachpie - the PHP compiler for .NET and .NET Core.",
-    "icon": "icons/peachpie-icon-new.png",
-    "version": "0.9.0",
-    "publisher": "iolevel",
-    "preview": true,
-    "license": "Apache-2.0",
-    "galleryBanner": {
-        "color": "#FFAC00",
-        "theme": "light"
-    },
-    "homepage": "http://www.peachpie.io",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/peachpiecompiler/peachpie.git"
-    },
-    "engines": {
-        "vscode": "^1.5.0"
-    },
-    "categories": [
-        "Languages",
-        "Snippets",
-        "Debuggers"
+  "name": "peachpie-vscode",
+  "displayName": "PeachPie for Visual Studio Code",
+  "description": "Visual Studio Code extension for PeachPie - the PHP compiler for .NET and .NET Core.",
+  "icon": "icons/PeachPie-icon-new.png",
+  "version": "0.9.8",
+  "publisher": "iolevel",
+  "preview": true,
+  "license": "Apache-2.0",
+  "galleryBanner": {
+    "color": "#FFAC00",
+    "theme": "light"
+  },
+  "homepage": "https://www.PeachPie.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PeachPiecompiler/PeachPie.git"
+  },
+  "engines": {
+    "vscode": "^1.5.0"
+  },
+  "categories": [
+    "Languages",
+    "Snippets",
+    "Debuggers"
+  ],
+  "keywords": [
+    "PeachPie",
+    "coreclr",
+    "dotnet",
+    "php"
+  ],
+  "activationEvents": [
+    "onLanguage:php",
+    "onCommand:PeachPie.createProject"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "PeachPie.createProject",
+        "title": "PeachPie: Create Project"
+      }
     ],
-    "keywords": [
-        "Peachpie",
-        "coreclr",
-        "dotnet",
-        "php"
-    ],
-    "activationEvents": [
-        "onLanguage:php",
-        "onCommand:peachpie.createProject"
-    ],
-    "main": "./out/src/extension",
-    "contributes": {
-        "commands": [
-            {
-                "command": "peachpie.createProject",
-                "title": "Peachpie: Create Project"
-            }
-        ],
-        "debuggers": [
-            {
-                "type": "dummy",
-                "enableBreakpointsFor": {
-                    "languageIds": [
-                        "php"
-                    ]
-                }
-            }
-        ],
-        "languages": [{
-            "id": "xml",
-            "extensions": [ ".msbuildproj" ]
-        }]
-    },
-    "badges": [
-        {
-            "url": "https://api.travis-ci.org/peachpiecompiler/peachpie.svg?branch=master",
-            "href": "https://travis-ci.org/peachpiecompiler/peachpie",
-            "description": "Build Status"
-        },
-        {
-            "url": "https://badges.gitter.im/iolevel/peachpie.svg",
-            "href": "https://gitter.im/iolevel/peachpie?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge",
-            "description": "Chat on Gitter"
+    "debuggers": [
+      {
+        "type": "dummy",
+        "enableBreakpointsFor": {
+          "languageIds": [
+            "php"
+          ]
         }
+      }
     ],
-    "scripts": {
-        "vscode:prepublish": "dotnet publish ../Peachpie.LanguageServer --configuration Release --output ../Peachpie.VSCode/out/server & tsc -p ./",
-        "compile": "dotnet publish ../Peachpie.LanguageServer --output ../Peachpie.VSCode/out/server & tsc -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+    "languages": [
+      {
+        "id": "xml",
+        "extensions": [
+          ".msbuildproj"
+        ]
+      }
+    ]
+  },
+  "badges": [
+    {
+      "url": "https://api.travis-ci.org/PeachPiecompiler/PeachPie.svg?branch=master",
+      "href": "https://travis-ci.org/PeachPiecompiler/PeachPie",
+      "description": "Build Status"
     },
-    "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
-    },
-    "dependencies": {
-        "vscode-languageclient": "^2.2.1"
+    {
+      "url": "https://badges.gitter.im/iolevel/PeachPie.svg",
+      "href": "https://gitter.im/iolevel/PeachPie?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge",
+      "description": "Chat on Gitter"
     }
+  ],
+  "scripts": {
+    "vscode:prepublish": "dotnet publish ../PeachPie.LanguageServer --configuration Release --output ../PeachPie.VSCode/out/server & tsc -p ./",
+    "compile": "dotnet publish ../PeachPie.LanguageServer --output ../PeachPie.VSCode/out/server & tsc -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "typescript": "^2.0.3",
+    "vscode": "^1.0.0",
+    "mocha": "^2.3.3",
+    "@types/node": "^6.0.40",
+    "@types/mocha": "^2.2.32"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^2.2.1"
+  }
 }
