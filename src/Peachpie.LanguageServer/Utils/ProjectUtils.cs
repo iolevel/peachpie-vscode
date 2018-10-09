@@ -102,8 +102,8 @@ namespace Peachpie.LanguageServer
                 var compilation = PhpCompilation.Create(
                     projectName,
                     syntaxTrees,
-                    metadataReferences,
-                    options);
+                    references: metadataReferences,
+                    options: options);
 
                 return new ProjectHandler(compilation, projectInstance);
             }

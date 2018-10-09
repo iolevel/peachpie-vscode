@@ -1,7 +1,7 @@
 ﻿using Devsense.PHP.Syntax.Ast;
 using Devsense.PHP.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Semantics;
+using Microsoft.CodeAnalysis.Operations;
 using Pchp.CodeAnalysis.FlowAnalysis;
 using Pchp.CodeAnalysis.Semantics;
 using Pchp.CodeAnalysis.Semantics.Graph;
@@ -94,8 +94,8 @@ namespace Peachpie.LanguageServer
                 {
                     // may throw NotImplementedException
                     symbolOpt = (ISymbol)
-                        (x.Variable as IVariable)?.Variable ??
-                        (x.Variable as IParameterInitializer)?.Parameter;
+                        (x.Variable as IVariableDeclaratorOperation)?.Symbol ??
+                        (x.Variable as IParameterInitializerOperation)?.Parameter;
                 }
                 catch (NotImplementedException)
                 {
@@ -133,7 +133,7 @@ namespace Peachpie.LanguageServer
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
-                var invocation = (IInvocationExpression)x;
+                var invocation = (IInvocationOperation)x;
                 if (invocation.TargetMethod != null)
                 {
                     if (!invocation.TargetMethod.IsImplicitlyDeclared || invocation.TargetMethod is IErrorMethodSymbol)
@@ -177,23 +177,20 @@ namespace Peachpie.LanguageServer
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
-                Span span = Span.Invalid;
-                if (x.PhpSyntax is DirectVarUse)
-                {
-                    span = ((DirectVarUse)x.PhpSyntax).Span;
-                }
-                else if (x.PhpSyntax is StaticFieldUse)
-                {
-                    span = ((StaticFieldUse)x.PhpSyntax).NameSpan;
-                }
-                else if (x.PhpSyntax is ClassConstUse)
-                {
-                    span = ((ClassConstUse)x.PhpSyntax).NamePosition;
-                }
+                Span span = x.PhpSyntax.Span;
+
+                //if (x.PhpSyntax is StaticFieldUse)
+                //{
+                //    span = ((StaticFieldUse)x.PhpSyntax).NameSpan;
+                //}
+                //else if (x.PhpSyntax is ClassConstUse)
+                //{
+                //    span = ((ClassConstUse)x.PhpSyntax).NamePosition;
+                //}
 
                 if (span.IsValid)
                 {
-                    _result = new SymbolStat(_tctx, span, x, ((IFieldReferenceExpression)x).Member);
+                    _result = new SymbolStat(_tctx, span, x, ((IMemberReferenceOperation)x).Member);
                 }
             }
 

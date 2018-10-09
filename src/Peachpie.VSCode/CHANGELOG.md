@@ -1,3 +1,6 @@
+### 0.9.11
+- bump to Peachpie Sdk 0.9.11
+
 ### 0.9.0
 - Project template targets PeachPie 0.9.0
 - A lot more diagnostics

@@ -2,7 +2,7 @@
 
 This is the official extension of PeachPie for Visual Studio Code. It integrates the PHP compiler to .NET into VSCode, automatically downloading the required dependencies and allowing for a comfortable development experience with PeachPie.
 
-> Please note that PeachPie compiler is still a work in progress. Therefore, some functionalities are not yet supported. For an updated list of supported constructs, please see [our roadmap](https://github.com/iolevel/PeachPie/wiki/PeachPie-Roadmap).
+> Please note that PeachPie compiler is still a work in progress. Therefore, some functionalities are not yet supported. For an updated list of supported constructs, please see [our roadmap](https://docs.peachpie.io/roadmap/).
 
 ![PeachPie for VS Code](images/tEDLQt.gif)
 
@@ -36,14 +36,14 @@ It is necessary to install the C# for Visual Studio Code extension first. Check 
 
 ## Known Issues
 
-PeachPie compiler is a work in progress, and thus many functionalities are not yet supported. Please see the project's [repository](https://www.github.com/iolevel/PeachPie) for limitations, supported constructs and specifications.
+PeachPie compiler is a work in progress, and thus many functionalities are not yet supported. Please see the project's [repository](https://www.github.com/iolevel/peachpie) for limitations, supported constructs and specifications.
 
 -----------------------------------------------------------------------------------------------------------
 
 ### For more information
 
 For more information, please visit:
-* [The project website](http://www.PeachPie.io)
-* [The GitHub repository](https://github.com/iolevel/PeachPie)
+* [The project website](http://www.peachpie.io/)
+* [The GitHub repository](https://github.com/peachpiecompiler/peachpie)
 
 **Enjoy!**
