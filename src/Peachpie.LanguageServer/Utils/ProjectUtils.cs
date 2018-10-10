@@ -97,7 +97,7 @@ namespace Peachpie.LanguageServer
                 // TODO: Get from MSBuild
                 string projectName = Path.GetFileNameWithoutExtension(projectFile);
 
-                var syntaxTrees = await ParseSourceFilesAsync(projectInstance);
+                var syntaxTrees = ParseSourceFiles(projectInstance);
 
                 var compilation = PhpCompilation.Create(
                     projectName,
@@ -137,8 +137,8 @@ namespace Peachpie.LanguageServer
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", EnvironmentUtils.MSBuildSDKsPath);
 
             // TODO: Make properly async
-            var fileContents = new MemoryStream(File.ReadAllBytes(projectFile));
-            var xmlReader = XmlReader.Create(fileContents, XmlSettings);
+            var fileContents = new StringReader(File.ReadAllText(projectFile)); // to avoid locking the file
+            var xmlReader = XmlReader.Create(projectFile, XmlSettings);
             var projectCollection = new ProjectCollection();
             var projectRoot = ProjectRootElement.Create(xmlReader, projectCollection);
 
@@ -150,8 +150,7 @@ namespace Peachpie.LanguageServer
 
         private static bool IsPhpProject(Project project)
         {
-            return project.GetItems("DotNetCliToolReference")
-                .Any(item => item.EvaluatedInclude == "Peachpie.Compiler.Tools");
+            return project.Imports.Any(x => x.ImportedProject.DirectoryPath.IndexOf("Peachpie.Compiler.Tools", StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         private static bool IsMultitargetingProject(Project project)
@@ -173,7 +172,7 @@ namespace Peachpie.LanguageServer
         {
             var projectInstance = project.CreateProjectInstance();
             string target = IsMultitargetingProject(project) ? "DispatchToInnerBuilds" : "ResolveReferences";
-            var buildRequestData = new BuildRequestData(projectInstance, new string[] {  target });
+            var buildRequestData = new BuildRequestData(projectInstance, new string[] { target });
 
             var buildManager = BuildManager.DefaultBuildManager;
             var buildParameters = new BuildParameters(project.ProjectCollection);
@@ -257,25 +256,20 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private static async Task<PhpSyntaxTree[]> ParseSourceFilesAsync(ProjectInstance projectInstance)
+        private static PhpSyntaxTree[] ParseSourceFiles(ProjectInstance projectInstance)
         {
-            // TODO: Determine the right files by inspecting the MSBuild project
-            string[] sourceFiles = Directory.GetFiles(projectInstance.Directory, "*.php", SearchOption.AllDirectories);
+            var sourceFiles = projectInstance
+                .GetItems("Compile")
+                .Select(x => Path.Combine(projectInstance.Directory, x.EvaluatedInclude)).ToArray();
 
             var syntaxTrees = new PhpSyntaxTree[sourceFiles.Length];
 
-            var tasks = Enumerable.Range(0, sourceFiles.Length).Select((i) => Task.Run(async () =>
+            Parallel.For(0, sourceFiles.Length, i =>
             {
-                string path = PathUtils.NormalizePath(sourceFiles[i]);
-                string code;
-                using (var reader = File.OpenText(path))
-                {
-                    code = await reader.ReadToEndAsync();
-                }
+                var path = PathUtils.NormalizePath(sourceFiles[i]);
+                string code = File.ReadAllText(path);
                 syntaxTrees[i] = PhpSyntaxTree.ParseCode(code, PhpParseOptions.Default, PhpParseOptions.Default, path);
-            })).ToArray();
-
-            await Task.WhenAll(tasks);
+            });
 
             return syntaxTrees;
         }

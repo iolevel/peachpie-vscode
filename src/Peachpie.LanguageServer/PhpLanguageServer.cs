@@ -35,21 +35,20 @@ namespace Peachpie.LanguageServer
             while (true)
             {
                 var request = await _requestReader.ReadRequestAsync();
-                if (_options.IsDebug)
-                {
-                    SendLogMessage($"Received: {JsonConvert.SerializeObject(request)}");
-                }
+                //if (_options.IsDebug)
+                //{
+                //    SendLogMessage($"Received: {JsonConvert.SerializeObject(request)}");
+                //}
 
                 switch (request.Method)
                 {
                     case "initialize":
                         var initializeParams = request.Params.ToObject<InitializeParams>();
                         SendInitializationResponse(request);
-                        if (_options.IsDebug)
-                        {
-                            SendGreetingMessage();
-                        }
                         await OpenFolder(initializeParams.RootPath);
+                        break;
+                    case "initialized":
+                        // ignore
                         break;
                     case "textDocument/didOpen":
                         var openParams = request.Params.ToObject<DidOpenTextDocumentParams>();
@@ -68,6 +67,13 @@ namespace Peachpie.LanguageServer
                         ProcessHover(request.Id, hoverParams);
                         break;
                     default:
+                        if (request.Method.StartsWith("$/"))
+                        {
+                            // ignored
+                            break;
+                        }
+
+                        SendLogMessage($"Request '{request.Method}' was unhandled.");
                         break;
                 }
             }
@@ -161,7 +167,7 @@ namespace Peachpie.LanguageServer
                     Language = "php",
                     Value = tooltip.Code
                 };
-                
+
                 response = new Hover()
                 {
                     Contents = (tooltip.Description != null) ?
@@ -193,6 +199,17 @@ namespace Peachpie.LanguageServer
                 }
             };
             _messageWriter.WriteResponse(request.Id, initializeResult);
+
+            SendLogMessage($@"
+PeachPie Language Server
+  PID: {Process.GetCurrentProcess().Id}
+  Path: {System.Reflection.Assembly.GetEntryAssembly().Location}
+");
+
+            if (_options.IsDebug)
+            {
+                SendGreetingMessage();
+            }
         }
 
         private void SendGreetingMessage()
@@ -200,7 +217,7 @@ namespace Peachpie.LanguageServer
             int processId = Process.GetCurrentProcess().Id;
             var showMessageParams = new ShowMessageParams()
             {
-                Message = $"Hello from Peachpie Language Server! The ID of the process is {processId}",
+                Message = $"Hello from PeachPie Language Server! The ID of the process is {processId}",
                 // An information message
                 // TODO: Introduce an enum for this
                 Type = 3
@@ -214,7 +231,7 @@ namespace Peachpie.LanguageServer
             {
                 Message = text,
                 // A log message
-                // TODO: Introdue an enum for this
+                // TODO: Introduce an enum for this
                 Type = 4
             };
             _messageWriter.WriteNotification("window/logMessage", logMessageParams);
@@ -233,8 +250,8 @@ namespace Peachpie.LanguageServer
                         Range = ConvertLocation(diagnostic.Location),
                         Severity = ConvertSeverity(diagnostic.Severity),
                         Code = diagnostic.Id,
-                        Source = DiagnosticSource,
-                        Message = diagnostic.GetMessage()
+                        Source = diagnostic.Id,
+                        Message = diagnostic.GetMessage(),
                     }).ToArray()
             };
 

@@ -14,17 +14,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Runtime" Version="15.7.179" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Build.Runtime" Version="15.8.166" />
+    <PackageReference Include="Microsoft.Build.NuGetSdkResolver" Version="4.8.0-*" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Peachpie.CodeAnalysis" Version="0.9.11" />
-    <PackageReference Include="Nuget.Common" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.Configuration" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.Frameworks" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.LibraryModel" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.Packaging" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.Packaging.Core" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.ProjectModel" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
-    <PackageReference Include="Nuget.Versioning" Version="4.7.0+9245481f357ae542f92e6bc5e504fc898cfe5fc0" />
+    <PackageReference Include="Nuget.Common" Version="4.8.0" />
+    <PackageReference Include="Nuget.Configuration" Version="4.8.0" />
+    <PackageReference Include="Nuget.Frameworks" Version="4.8.0" />
+    <PackageReference Include="Nuget.LibraryModel" Version="4.8.0" />
+    <PackageReference Include="Nuget.Packaging" Version="4.8.0" />
+    <PackageReference Include="Nuget.Packaging.Core" Version="4.8.0" />
+    <PackageReference Include="Nuget.ProjectModel" Version="4.8.0" />
+    <PackageReference Include="Nuget.Versioning" Version="4.8.0" />
   </ItemGroup>
 
 </Project>

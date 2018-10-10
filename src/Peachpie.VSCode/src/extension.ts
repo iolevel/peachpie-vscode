@@ -16,8 +16,8 @@ let channel: vscode.OutputChannel;
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-    channel = vscode.window.createOutputChannel("Peachpie");
-    channel.appendLine("Peachpie extension was activated\n");
+    channel = vscode.window.createOutputChannel("PeachPie");
+    channel.appendLine("PeachPie extension was activated");
 
     let languageClientDisposable = startLanguageServer(context);
 
@@ -32,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Check the opened folder
         let rootPath = vscode.workspace.rootPath;
         if (rootPath != null) {
-            showInfo(`Creating Peachpie project in ${rootPath}\n`);
+            showInfo(`Creating PeachPie project in ${rootPath}\n`);
         } else {
             showError("A folder must be opened in the Explorer panel\n");
             return;
@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Create project.msbuildproj
         let projectPath = path.join(rootPath, "project.msbuildproj");
         if (fs.existsSync(projectPath)) {
-            showInfo("Peachpie project.msbuildproj file already exists\n");            
+            showInfo("PeachPie project.msbuildproj file already exists\n");            
         } else {
             showInfo("Creating project.msbuildproj...");
             let isProjectSuccess = await createProjectFile(projectPath);
@@ -65,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         // Run dotnet restore
         let isError = false;
-        showInfo("Running dotnet restore to install Peachpie compiler and libraries...");
+        showInfo("Running dotnet restore to install PeachPie Sdk ...");
         await execChildProcess("dotnet restore", rootPath)
         .then((data: string) => {
             showInfo(data);
@@ -77,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
         .catch((error) => {
-            showError("For building and executing, Peachpie needs .NET Core CLI tools to be available on the path. Make sure they are installed properly.\n");
+            showError("For building and executing, PeachPie needs .NET Core CLI tools to be available on the path. Make sure they are installed properly.\n");
             isError = true;
         });
         if (isError) {
@@ -87,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Activate Omnisharp C# extension for debugging
         let csharpExtension = vscode.extensions.getExtension("ms-vscode.csharp");
         if (csharpExtension == null) {
-            showError("Install OmniSharp C# extension in order to enable the debugging of Peachpie projects\n");
+            showError("Install OmniSharp C# extension in order to enable the debugging of PeachPie projects\n");
             return;            
         } else {
             if (csharpExtension.isActive) {
@@ -96,7 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
                 showInfo("Activating OmniSharp C# extension to take care of the project structure and debugging...\n");
                 await csharpExtension.activate();
             }
-            showInfo("Peachpie project was successfully configured", true);
+            showInfo("PeachPie project was successfully configured", true);
         }
     });
 
@@ -125,7 +125,7 @@ function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposab
     }
 
     // Create the language client and start the server
-    return new LanguageClient('Peachpie Language Server', serverOptions, clientOptions).start();
+    return new LanguageClient("PeachPie Language Server", serverOptions, clientOptions).start();
 }
 
 function showInfo(message: string, doShowWindow = false) {

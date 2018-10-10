@@ -38,14 +38,17 @@ namespace Peachpie.LanguageServer
 
         private void SerializeAndSend<T>(T data)
         {
-            var dataText = JsonConvert.SerializeObject(data);
-            var dataBytes = Encoding.UTF8.GetBytes(dataText);
+            lock (this)
+            {
+                var dataText = JsonConvert.SerializeObject(data);
+                var dataBytes = Encoding.UTF8.GetBytes(dataText);
 
-            var headerText = $"Content-Length: {dataBytes.Length}\r\n\r\n";
-            var headerBytes = Encoding.ASCII.GetBytes(headerText);
+                var headerText = $"Content-Length: {dataBytes.Length}\r\n\r\n";
+                var headerBytes = Encoding.ASCII.GetBytes(headerText);
 
-            _outputStream.Write(headerBytes, 0, headerBytes.Length);
-            _outputStream.Write(dataBytes, 0, dataBytes.Length);
+                _outputStream.Write(headerBytes, 0, headerBytes.Length);
+                _outputStream.Write(dataBytes, 0, dataBytes.Length);
+            }
         }
     }
 }
