@@ -39,7 +39,7 @@
   "contributes": {
     "commands": [
       {
-        "command": "PeachPie.createProject",
+        "command": "peachpie.createProject",
         "title": "PeachPie: Create Project"
       }
     ],
