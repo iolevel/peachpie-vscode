@@ -137,6 +137,7 @@ namespace Peachpie.LanguageServer
             if (Version.TryParse(sdkverstr, out var sdkver) && sdkver < LatestPeachpieVersion)
             {
                 SendLogMessage($"  New version available: {LatestPeachpieVersion}");
+                ShowMessage($"PeachPie {LatestPeachpieVersion} is available, update your project file.");
             }
         }
 
@@ -235,9 +236,14 @@ PeachPie Language Server
         private void SendGreetingMessage()
         {
             int processId = Process.GetCurrentProcess().Id;
+            ShowMessage($"Hello from PeachPie Language Server! The ID of the process is {processId}");
+        }
+
+        private void ShowMessage(string message)
+        {
             var showMessageParams = new ShowMessageParams()
             {
-                Message = $"Hello from PeachPie Language Server! The ID of the process is {processId}",
+                Message = message,
                 // An information message
                 // TODO: Introduce an enum for this
                 Type = 3
