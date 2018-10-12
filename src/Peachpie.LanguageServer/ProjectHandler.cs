@@ -31,8 +31,8 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private CompilationDiagnosticBroker _diagnosticBroker;
-        private HashSet<string> _filesWithParserErrors = new HashSet<string>();
+        readonly CompilationDiagnosticBroker _diagnosticBroker;
+        readonly HashSet<string> _filesWithParserErrors = new HashSet<string>();
         private HashSet<string> _filesWithSemanticDiagnostics = new HashSet<string>();
 
         public PhpCompilation Compilation => _diagnosticBroker.Compilation;

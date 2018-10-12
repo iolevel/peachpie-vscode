@@ -267,8 +267,15 @@ namespace Peachpie.LanguageServer
             Parallel.For(0, sourceFiles.Length, i =>
             {
                 var path = PathUtils.NormalizePath(sourceFiles[i]);
-                string code = File.ReadAllText(path);
-                syntaxTrees[i] = PhpSyntaxTree.ParseCode(code, PhpParseOptions.Default, PhpParseOptions.Default, path);
+                if (path.EndsWith(".phar"))
+                {
+                    // TODO: process phar archives
+                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(string.Empty, PhpParseOptions.Default, PhpParseOptions.Default, path);
+                }
+                else
+                {
+                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(File.ReadAllText(path), PhpParseOptions.Default, PhpParseOptions.Default, path);
+                }
             });
 
             return syntaxTrees;
