@@ -16,7 +16,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Peachpie.LanguageServer
 {
-    public class ProjectHandler
+    public class ProjectHandler : IDisposable
     {
         public class DocumentDiagnosticsEventArgs : EventArgs
         {
@@ -138,6 +138,20 @@ namespace Peachpie.LanguageServer
         private void OnDocumentDiagnosticsChanged(string documentPath, IEnumerable<Diagnostic> diagnostics)
         {
             DocumentDiagnosticsChanged?.Invoke(this, new DocumentDiagnosticsEventArgs(documentPath, diagnostics));
+        }
+
+        /// <summary>
+        /// Gets used PeachPie Sdk version.
+        /// </summary>
+        public bool TryGetSdkVersion(out string version)
+        {
+            version = this.BuildInstance.GetPropertyValue("PeachpieVersion");
+            return version != null;
+        }
+
+        public void Dispose()
+        {
+            this.DocumentDiagnosticsChanged = null;
         }
     }
 }

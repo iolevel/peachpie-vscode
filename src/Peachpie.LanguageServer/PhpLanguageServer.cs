@@ -23,6 +23,15 @@ namespace Peachpie.LanguageServer
         private string _rootPath;
         private ProjectHandler _project;
 
+        static Version LatestPeachpieVersion
+        {
+            get
+            {
+                var v4 = typeof(PhpCompilation).Assembly.GetName().Version;
+                return new Version(v4.Major, v4.Minor, v4.Build); // v3
+            }
+        }
+
         public PhpLanguageServer(ServerOptions options, MessageReader requestReader, MessageWriter messageWriter)
         {
             _options = options;
@@ -110,14 +119,25 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            if (_project != null)
-            {
-                _project.DocumentDiagnosticsChanged -= DocumentDiagnosticsChanged;
-            }
+            // dispose previous one
+            _project?.Dispose();
 
+            // new project
             _project = newProject;
             _project.DocumentDiagnosticsChanged += DocumentDiagnosticsChanged;
             _project.Initialize();
+
+            // check the Sdk version
+            newProject.TryGetSdkVersion(out var sdkverstr);
+
+            SendLogMessage($@"Loaded project:
+  {newProject.BuildInstance.FullPath}
+  PeachPie Version: {(sdkverstr ?? "unknown")}");
+
+            if (Version.TryParse(sdkverstr, out var sdkver) && sdkver < LatestPeachpieVersion)
+            {
+                SendLogMessage($"  New version available: {LatestPeachpieVersion}");
+            }
         }
 
         private async Task ProcessDocumentChanges(DidChangeTextDocumentParams changeParams)

@@ -148,9 +148,17 @@ namespace Peachpie.LanguageServer
             return new Project(projectRoot, properties, toolsVersion: ToolsVersion, projectCollection: projectCollection);
         }
 
+        private static bool IsPeachPieCompilerImport(ResolvedImport import)
+        {
+            return import
+                .ImportedProject
+                .FullPath
+                .IndexOf("Peachpie.Compiler.Tools", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         private static bool IsPhpProject(Project project)
         {
-            return project.Imports.Any(x => x.ImportedProject.DirectoryPath.IndexOf("Peachpie.Compiler.Tools", StringComparison.OrdinalIgnoreCase) >= 0);
+            return project.Imports.Any(IsPeachPieCompilerImport);
         }
 
         private static bool IsMultitargetingProject(Project project)
