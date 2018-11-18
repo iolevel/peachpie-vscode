@@ -137,8 +137,8 @@ namespace Peachpie.LanguageServer
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", EnvironmentUtils.MSBuildSDKsPath);
 
             // TODO: Make properly async
-            var fileContents = new StringReader(File.ReadAllText(projectFile)); // to avoid locking the file
-            var xmlReader = XmlReader.Create(projectFile, XmlSettings);
+            var fileContents = new StringReader(File.ReadAllText(projectFile)); // read {projectFile} separately in order to avoid locking it on FS
+            var xmlReader = XmlReader.Create(fileContents, XmlSettings);
             var projectCollection = new ProjectCollection();
             var projectRoot = ProjectRootElement.Create(xmlReader, projectCollection);
 

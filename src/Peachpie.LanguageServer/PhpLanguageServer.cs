@@ -137,7 +137,7 @@ namespace Peachpie.LanguageServer
             if (Version.TryParse(sdkverstr, out var sdkver) && sdkver < LatestPeachpieVersion)
             {
                 SendLogMessage($"  New version available: {LatestPeachpieVersion}");
-                ShowMessage($"PeachPie {LatestPeachpieVersion} is available, update your project file.");
+                ShowMessage($"PeachPie {LatestPeachpieVersion} is available! Your project is running version {sdkver.ToString(3)}, please update.");
             }
         }
 

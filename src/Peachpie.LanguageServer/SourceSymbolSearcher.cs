@@ -6,6 +6,7 @@ using Pchp.CodeAnalysis.FlowAnalysis;
 using Pchp.CodeAnalysis.Semantics;
 using Pchp.CodeAnalysis.Semantics.Graph;
 using Pchp.CodeAnalysis.Symbols;
+using Peachpie.CodeAnalysis.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,7 @@ using System.Text;
 
 namespace Peachpie.LanguageServer
 {
-    internal class SourceSymbolSearcher : GraphVisitor
+    internal class SourceSymbolSearcher : GraphExplorer<VoidStruct>
     {
         public class SymbolStat
         {
@@ -32,7 +33,6 @@ namespace Peachpie.LanguageServer
         }
 
         private int _position;
-        private int _color;
 
         private TypeRefContext _tctx;
         private SymbolStat _result;
@@ -68,24 +68,21 @@ namespace Peachpie.LanguageServer
             return null;
         }
 
-        public override void VisitCFG(ControlFlowGraph x)
+        protected override void VisitCFGInternal(ControlFlowGraph x)
         {
             _tctx = x.FlowContext?.TypeRefContext;
-            _color = x.NewColor();
-            base.VisitCFG(x);
+            base.VisitCFGInternal(x);
         }
 
-        protected override void VisitCFGBlockInternal(BoundBlock x)
+        protected override void DefaultVisitUnexploredBlock(BoundBlock x)
         {
-            // Prevent infinite loop and stop searching after finding the result
-            if (x.Tag != _color && _result == null)
+            if (_result == null)
             {
-                x.Tag = _color;
-                base.VisitCFGBlockInternal(x);
+                base.DefaultVisitUnexploredBlock(x);
             }
         }
 
-        public override void VisitVariableRef(BoundVariableRef x)
+        public override VoidStruct VisitVariableRef(BoundVariableRef x)
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
@@ -106,10 +103,10 @@ namespace Peachpie.LanguageServer
             }
 
             //
-            base.VisitVariableRef(x);
+            return base.VisitVariableRef(x);
         }
 
-        public override void VisitTypeRef(BoundTypeRef x)
+        public override VoidStruct VisitTypeRef(BoundTypeRef x)
         {
             if (x != null)
             {
@@ -125,11 +122,12 @@ namespace Peachpie.LanguageServer
                     }
                 }
 
-                base.VisitTypeRef(x);
             }
+
+            return base.VisitTypeRef(x);
         }
 
-        protected override void VisitRoutineCall(BoundRoutineCall x)
+        protected override VoidStruct VisitRoutineCall(BoundRoutineCall x)
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
@@ -145,14 +143,14 @@ namespace Peachpie.LanguageServer
                             _result = new SymbolStat(_tctx, span, x, invocation.TargetMethod);
                         }
                     }
-                } 
+                }
             }
 
             //
-            base.VisitRoutineCall(x);
+            return base.VisitRoutineCall(x);
         }
 
-        public override void VisitGlobalConstUse(BoundGlobalConst x)
+        public override VoidStruct VisitGlobalConstUse(BoundGlobalConst x)
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
@@ -160,20 +158,20 @@ namespace Peachpie.LanguageServer
             }
 
             //
-            base.VisitGlobalConstUse(x);
+            return base.VisitGlobalConstUse(x);
         }
 
-        public override void VisitPseudoConstUse(BoundPseudoConst x)
+        public override VoidStruct VisitPseudoConstUse(BoundPseudoConst x)
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
                 _result = new SymbolStat(_tctx, x.PhpSyntax.Span, x, null);
             }
 
-            base.VisitPseudoConstUse(x);
+            return base.VisitPseudoConstUse(x);
         }
 
-        public override void VisitFieldRef(BoundFieldRef x)
+        public override VoidStruct VisitFieldRef(BoundFieldRef x)
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
@@ -195,7 +193,7 @@ namespace Peachpie.LanguageServer
             }
 
             //
-            base.VisitFieldRef(x);
+            return base.VisitFieldRef(x);
         }
     }
 }
