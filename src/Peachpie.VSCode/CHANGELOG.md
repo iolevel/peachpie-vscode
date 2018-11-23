@@ -1,8 +1,10 @@
+### 0.9.17
+- support for .NET generics
+- support for .NET custom attributes (on methods and classes)
+
 ### 0.9.16
 - bump to Peachpie Sdk 0.9.16
-
-### 0.9.11
-- bump to Peachpie Sdk 0.9.11
+- fixes
 
 ### 0.9.0
 - Project template targets PeachPie 0.9.0
