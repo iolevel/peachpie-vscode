@@ -38,17 +38,18 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Create project.msbuildproj
-        let projectPath = path.join(rootPath, "project.msbuildproj");
+        const templatename = "project.msbuildproj"
+
+        // Create .msbuildproj project file:
+        let projectPath = path.join(rootPath, templatename);
+        showInfo(`Creating '${templatename}' ...`);
         if (fs.existsSync(projectPath)) {
-            showInfo("PeachPie project.msbuildproj file already exists\n");            
+            showInfo(`Warning: project file already exists, won't be created.`);
         } else {
-            showInfo("Creating project.msbuildproj...");
-            let isProjectSuccess = await createProjectFile(projectPath);
-            if (isProjectSuccess) {
-                showInfo("project.msbuildproj was successfully created\n");
+            if (await createProjectFile(projectPath, templatename)) {
+                showInfo("Project file created successfully.");
             } else {
-                showError("Error in creating project.msbuildproj\n");
+                showError("Error in creating project file.\n");
                 return;
             }
         }
@@ -142,12 +143,12 @@ function showError(message: string, doShowWindow = true) {
     }
 }
 
-// Create project.msbuildproj file in the opened root folder
-async function createProjectFile(filePath: string): Promise<boolean> {
+// Create project file in the opened root folder
+async function createProjectFile(filePath: string, templateFile: string): Promise<boolean> {
     let projectUri = vscode.Uri.parse(`untitled:${filePath}`);
     let projectDocument = await vscode.workspace.openTextDocument(projectUri);
     let extensionDir = vscode.extensions.getExtension("iolevel.peachpie-vscode").extensionPath;
-    let projectContent = fs.readFileSync(extensionDir + "/templates/project.msbuildproj").toString();
+    let projectContent = fs.readFileSync(extensionDir + "/templates/" + templateFile).toString();
     let projectEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectContent);
     
     let wsEdit = new vscode.WorkspaceEdit();
