@@ -1,6 +1,7 @@
-### 0.9.17
+### 0.9.18
 - support for .NET generics
 - support for .NET custom attributes (on methods and classes)
+- [compiler fixes and improvements](https://github.com/peachpiecompiler/peachpie/releases/tag/v0.9.18)
 
 ### 0.9.16
 - bump to Peachpie Sdk 0.9.16
