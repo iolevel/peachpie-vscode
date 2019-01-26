@@ -13,6 +13,8 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using System.Threading;
 using Microsoft.Build.Logging;
+using Microsoft.CodeAnalysis.Text;
+using System.Text;
 
 namespace Peachpie.LanguageServer
 {
@@ -278,11 +280,11 @@ namespace Peachpie.LanguageServer
                 if (path.EndsWith(".phar"))
                 {
                     // TODO: process phar archives
-                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(string.Empty, PhpParseOptions.Default, PhpParseOptions.Default, path);
+                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(SourceText.From(string.Empty), PhpParseOptions.Default, PhpParseOptions.Default, path);
                 }
                 else
                 {
-                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(File.ReadAllText(path), PhpParseOptions.Default, PhpParseOptions.Default, path);
+                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(SourceText.From(File.OpenRead(path), Encoding.UTF8), PhpParseOptions.Default, PhpParseOptions.Default, path);
                 }
             });
 

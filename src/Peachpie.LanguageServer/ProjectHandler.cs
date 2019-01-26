@@ -65,7 +65,7 @@ namespace Peachpie.LanguageServer
 
         public void UpdateFile(string path, string text)
         {
-            var syntaxTree = PhpSyntaxTree.ParseCode(text, PhpParseOptions.Default, PhpParseOptions.Default, path);
+            var syntaxTree = PhpSyntaxTree.ParseCode(SourceText.From(text, Encoding.UTF8), PhpParseOptions.Default, PhpParseOptions.Default, path);
             if (syntaxTree.Diagnostics.Length > 0)
             {
                 _filesWithParserErrors.Add(path);

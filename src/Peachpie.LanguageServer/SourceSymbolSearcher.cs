@@ -2,6 +2,7 @@
 using Devsense.PHP.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
+using Pchp.CodeAnalysis;
 using Pchp.CodeAnalysis.FlowAnalysis;
 using Pchp.CodeAnalysis.Semantics;
 using Pchp.CodeAnalysis.Semantics.Graph;
@@ -37,14 +38,19 @@ namespace Peachpie.LanguageServer
         private TypeRefContext _tctx;
         private SymbolStat _result;
 
+        PhpCompilation DeclaringCompilation { get; set; }
+
         private SourceSymbolSearcher(int position)
         {
             _position = position;
         }
 
-        public static SymbolStat SearchCFG(ControlFlowGraph cfg, int position)
+        public static SymbolStat SearchCFG(PhpCompilation compilation, ControlFlowGraph cfg, int position)
         {
-            var visitor = new SourceSymbolSearcher(position);
+            var visitor = new SourceSymbolSearcher(position)
+            {
+                DeclaringCompilation = compilation,
+            };
             visitor.VisitCFG(cfg);
             return visitor._result;
         }
@@ -86,18 +92,7 @@ namespace Peachpie.LanguageServer
         {
             if (x.PhpSyntax?.Span.Contains(_position) == true)
             {
-                ISymbol symbolOpt = null;
-                try
-                {
-                    // may throw NotImplementedException
-                    symbolOpt = (ISymbol)
-                        (x.Variable as IVariableDeclaratorOperation)?.Symbol ??
-                        (x.Variable as IParameterInitializerOperation)?.Parameter;
-                }
-                catch (NotImplementedException)
-                {
-                    // ignore
-                }
+                var symbolOpt = x is ILocalReferenceOperation loc ? loc.Local : null;
 
                 _result = new SymbolStat(_tctx, x.PhpSyntax.Span, x, symbolOpt);
             }
@@ -106,25 +101,18 @@ namespace Peachpie.LanguageServer
             return base.VisitVariableRef(x);
         }
 
-        public override VoidStruct VisitTypeRef(BoundTypeRef x)
+        protected override VoidStruct DefaultVisitOperation(BoundOperation x)
         {
-            if (x != null)
+            if (x is IBoundTypeRef tref && tref.PhpSyntax != null && tref.PhpSyntax.Span.Contains(_position))
             {
-                if (x.Symbol != null && x.TypeRef?.Span.Contains(_position) == true)
+                var symbol = tref.ResolveTypeSymbol(DeclaringCompilation);
+                if (symbol != null)
                 {
-                    if (x.TypeRef is AnonymousTypeRef)
-                    {
-                        // nada
-                    }
-                    else
-                    {
-                        _result = new SymbolStat(_tctx, x.TypeRef.Span, null, x.Symbol);
-                    }
+                    _result = new SymbolStat(_tctx, tref.PhpSyntax.Span, null, symbol);
                 }
-
             }
 
-            return base.VisitTypeRef(x);
+            return base.DefaultVisitOperation(x);
         }
 
         protected override VoidStruct VisitRoutineCall(BoundRoutineCall x)

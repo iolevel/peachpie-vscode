@@ -1,5 +1,6 @@
 ﻿using Devsense.PHP.Syntax;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
 using Pchp.CodeAnalysis;
 using Pchp.CodeAnalysis.FlowAnalysis;
@@ -49,7 +50,7 @@ namespace Peachpie.LanguageServer
                     }
 
                     // Search the routine body
-                    searchResult = SourceSymbolSearcher.SearchCFG(routine.ControlFlowGraph, position);
+                    searchResult = SourceSymbolSearcher.SearchCFG(compilation, routine.ControlFlowGraph, position);
                     if (searchResult != null)
                     {
                         break;
@@ -90,30 +91,33 @@ namespace Peachpie.LanguageServer
 
             var result = new StringBuilder(32);
 
-            if (expression is BoundVariableRef)
+            if (expression is BoundVariableRef varref && varref.Name.IsDirect)
             {
-                var name = ((BoundVariableRef)expression).Name.NameValue.Value;
-                if (name != null)
-                {
-                    switch ((((BoundVariableRef)expression).Variable).VariableKind)
-                    {
-                        case VariableKind.LocalVariable:
-                            result.Append("(var)"); break;
-                        case VariableKind.Parameter:
-                            result.Append("(parameter)"); break;
-                        case VariableKind.GlobalVariable:
-                            result.Append("(global)"); break;
-                        case VariableKind.StaticVariable:
-                            result.Append("(static local)"); break;
-                    }
+                var name = varref.Name.NameValue;
 
-                    result.Append(' ');
-                    result.Append("$" + name);
+                if (symbol is IParameterSymbol)
+                {
+                    result.Append("(parameter) ");
                 }
                 else
                 {
-                    return null;
+                    // ...
                 }
+                
+                //switch ((((BoundVariableRef)expression).Variable).VariableKind)
+                //{
+                //    case VariableKind.LocalVariable:
+                //        result.Append("(var) "); break;
+                //    case VariableKind.Parameter:
+                //        result.Append("(parameter) "); break;
+                //    case VariableKind.GlobalVariable:
+                //        result.Append("(global) "); break;
+                //    case VariableKind.StaticVariable:
+                //        result.Append("(static local) "); break;
+                //}
+
+                result.Append("$" + name);
+
             }
             else if (expression is BoundGlobalConst)
             {
@@ -172,15 +176,15 @@ namespace Peachpie.LanguageServer
                         result.Append(fld.IsStaticField ? "static" : "var");
                     };
 
-                    if (fld.ContainingType != null && fld.ContainingType.IsDirect)
+                    if (fld.Instance != null)
                     {
-                        containedType = fld.ContainingType.TypeRef.ToString();
-                    }
-                    else if (fld.Instance != null)
-                    {
-                        if (fld.Instance.TypeRefMask.IsAnyType || fld.Instance.TypeRefMask.IsVoid) return null;
+                        //if (fld.Instance.TypeRefMask.IsAnyType || fld.Instance.TypeRefMask.IsVoid) return null;
 
                         containedType = ctx.ToString(fld.Instance.TypeRefMask);
+                    }
+                    else
+                    {
+                        containedType = fld.ContainingType?.ToString();
                     }
 
                     result.Append(' ');

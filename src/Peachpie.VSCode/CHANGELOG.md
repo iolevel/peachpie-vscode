@@ -1,4 +1,14 @@
-### 0.9.20
+### 0.9.30
+
+- update PeachPie 0.9.30
+  - new array implementation
+  - compiler improvements and fixes
+  - runtime improvements and fixes
+- update project templates
+
+### 0.9.26
+
+- update PeachPie 0.9.26
 
 ### 0.9.18
 - support for .NET generics

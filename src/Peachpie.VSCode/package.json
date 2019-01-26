@@ -3,7 +3,7 @@
   "displayName": "PeachPie for Visual Studio Code",
   "description": "Visual Studio Code extension for PeachPie - the PHP compiler for .NET and .NET Core.",
   "icon": "icons/peachpie-vscode.png",
-  "version": "0.9.23",
+  "version": "0.9.30",
   "publisher": "iolevel",
   "preview": true,
   "license": "Apache-2.0",
