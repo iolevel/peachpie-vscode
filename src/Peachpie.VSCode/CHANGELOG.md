@@ -1,9 +1,10 @@
-### 0.9.30
+### 0.9.31
 
-- update PeachPie 0.9.30
+- update PeachPie 0.9.31
   - new array implementation
   - compiler improvements and fixes
   - runtime improvements and fixes
+  - general issues fixes
 - update project templates
 
 ### 0.9.26
