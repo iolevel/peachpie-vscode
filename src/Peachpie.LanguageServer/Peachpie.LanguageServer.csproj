@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.9.35</VersionPrefix>
+    <VersionPrefix>0.9.36</VersionPrefix>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AssemblyName>Peachpie.LanguageServer</AssemblyName>
     <OutputType>Exe</OutputType>
@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Peachpie.CodeAnalysis" Version="0.9.35" />
+    <PackageReference Include="Peachpie.CodeAnalysis" Version="0.9.36" />
     <PackageReference Include="Microsoft.Build.Runtime" Version="15.9.20" />
     <PackageReference Include="Microsoft.Build.NuGetSdkResolver" Version="4.8.1-*" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
