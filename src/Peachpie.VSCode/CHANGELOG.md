@@ -1,3 +1,7 @@
+### 0.9.37
+
+- update Peachpie 0.9.37
+
 ### 0.9.36
 
 - update Peachpie 0.9.36
