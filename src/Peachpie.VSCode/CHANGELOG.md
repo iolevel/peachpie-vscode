@@ -1,6 +1,11 @@
 ### 0.9.37
 
 - update Peachpie 0.9.37
+  - added new diagnostics
+  - runtime improvements and fixes
+  - compiler improvements and fixes
+  - improved PHP standard library
+- updated project template
 
 ### 0.9.36
 
