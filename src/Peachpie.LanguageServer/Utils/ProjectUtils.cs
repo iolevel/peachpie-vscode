@@ -23,7 +23,7 @@ namespace Peachpie.LanguageServer
         private const string SolutionNamePattern = "*.sln";
         private const string ProjectNamePattern = "*.msbuildproj";
 
-        private const string ToolsVersion = "15.0";
+        private const string ToolsVersion = "Current";
         private static readonly XmlReaderSettings XmlSettings = new XmlReaderSettings()
         {
             DtdProcessing = DtdProcessing.Prohibit
@@ -147,7 +147,7 @@ namespace Peachpie.LanguageServer
             // In order to have it accessible from MSBuild
             projectRoot.FullPath = projectFile;
 
-            return new Project(projectRoot, properties, toolsVersion: ToolsVersion, projectCollection: projectCollection);
+            return new Project(projectRoot, properties, toolsVersion: null, projectCollection: projectCollection);
         }
 
         private static bool IsPeachPieCompilerImport(ResolvedImport import)
@@ -155,7 +155,7 @@ namespace Peachpie.LanguageServer
             return import
                 .ImportedProject
                 .FullPath
-                .IndexOf("Peachpie.Compiler.Tools", StringComparison.OrdinalIgnoreCase) >= 0;
+                .IndexOf("peachpie.net.sdk", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsPhpProject(Project project)
