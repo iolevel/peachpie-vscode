@@ -117,7 +117,7 @@ namespace Peachpie.LanguageServer
 
         protected override VoidStruct VisitRoutineCall(BoundRoutineCall x)
         {
-            if (x.PhpSyntax?.Span.Contains(_position) == true)
+            if (x.PhpSyntax != null && x.PhpSyntax.Span.Contains(_position) == true)
             {
                 var invocation = (IInvocationOperation)x;
                 if (invocation.TargetMethod != null)
@@ -128,7 +128,10 @@ namespace Peachpie.LanguageServer
                         if (x.PhpSyntax is FunctionCall)
                         {
                             span = ((FunctionCall)x.PhpSyntax).NameSpan;
-                            _result = new SymbolStat(_tctx, span, x, invocation.TargetMethod);
+                            if (span.Contains(_position))
+                            {
+                                _result = new SymbolStat(_tctx, span, x, invocation.TargetMethod);
+                            }
                         }
                     }
                 }
