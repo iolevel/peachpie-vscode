@@ -33,11 +33,9 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private static Task<string> GetNetCorePathAsync()
+        private static async Task<string> GetNetCorePathAsync()
         {
-            var taskSource = new TaskCompletionSource<string>();
-
-            Process process = new Process
+            using (var process = new Process()
             {
                 StartInfo =
                 {
@@ -48,20 +46,32 @@ namespace Peachpie.LanguageServer
                     FileName = "dotnet",
                     Arguments = "--info"
                 },
-                EnableRaisingEvents = true
-            };
-
-            process.Exited += (sender, args) =>
+            })
             {
-                string output = process.StandardOutput.ReadToEnd();
-                ProcessDotnetInfoOutput(output, ref taskSource);
+                try
+                {
+                    process.Start();
+                }
+                catch
+                {
+                    // no `dotnet`
+                    return null;
+                }
 
-                process.Dispose();
-            };
+                var output = await process.StandardOutput.ReadToEndAsync();
 
-            process.Start();
+                if (!string.IsNullOrEmpty(output))
+                {
+                    var regex = new Regex("Base Path:(.+)");
+                    var matches = regex.Match(output);
+                    if (matches.Groups.Count >= 2)
+                    {
+                        return matches.Groups[1].Value.Trim();
+                    }
+                }
+            }
 
-            return taskSource.Task;
+            return null;
         }
 
         private static void ProcessDotnetInfoOutput(string output, ref TaskCompletionSource<string> taskSource)
