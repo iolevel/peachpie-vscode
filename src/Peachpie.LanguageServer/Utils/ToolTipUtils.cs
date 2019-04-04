@@ -128,7 +128,7 @@ namespace Peachpie.LanguageServer
             {
                 result.Append("(magic const) ");
                 result.Append("__");
-                result.Append(((BoundPseudoConst)expression).Type.ToString().ToUpperInvariant());
+                result.Append(((BoundPseudoConst)expression).ConstType.ToString().ToUpperInvariant());
                 result.Append("__");
             }
             else if (symbol is IParameterSymbol)
