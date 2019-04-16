@@ -1,3 +1,8 @@
+### 0.9.40
+
+- improved compatibility
+- bug fixes
+
 ### 0.9.39
 
 ### 0.9.38
