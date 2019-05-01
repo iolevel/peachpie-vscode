@@ -1,3 +1,5 @@
+### 0.9.41
+
 ### 0.9.40
 
 - improved compatibility
