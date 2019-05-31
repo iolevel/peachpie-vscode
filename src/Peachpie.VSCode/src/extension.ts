@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
-    let createProjectCommand = vscode.commands.registerCommand('peachpie.createProject', async () => {
+    let createProjectCommand = vscode.commands.registerCommand('peachpie.createConsole', async () => {
         // We will write successes to the output channel. In case of an error, we will display it also
         // in the window and skip the remaining operations.
         channel.show(true);
@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const templatename = "project.msbuildproj"
+        const templatename = "console.msbuildproj"
 
         // Create .msbuildproj project file:
         let projectPath = path.join(rootPath, templatename);

@@ -33,13 +33,13 @@
   ],
   "activationEvents": [
     "onLanguage:php",
-    "onCommand:peachpie.createProject"
+    "onCommand:peachpie.createConsole"
   ],
   "main": "./out/src/extension",
   "contributes": {
     "commands": [
       {
-        "command": "peachpie.createProject",
+        "command": "peachpie.createConsole",
         "title": "PeachPie: Create console project"
       }
     ],
