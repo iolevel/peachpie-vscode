@@ -276,7 +276,7 @@ PeachPie Language Server
                         Range = ConvertLocation(diagnostic.Location),
                         Severity = ConvertSeverity(diagnostic.Severity),
                         Code = diagnostic.Id,
-                        Source = diagnostic.Id,
+                        Source = "PeachPie",
                         Message = diagnostic.GetMessage(),
                     }).ToArray()
             };
