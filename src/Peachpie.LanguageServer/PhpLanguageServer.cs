@@ -201,7 +201,7 @@ namespace Peachpie.LanguageServer
                 // Return empty response to hide the "Loading..." text in the box
                 response = new Hover()
                 {
-                    Contents = new object[] { }
+                    Contents = Array.Empty<object>(),
                 };
             }
             _messageWriter.WriteResponse(requestId, response);
