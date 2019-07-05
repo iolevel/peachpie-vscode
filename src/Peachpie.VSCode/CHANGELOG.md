@@ -1,17 +1,17 @@
+## Runtime updates:
+
+The extension uses corresponding version of the [PeachPie compiler](https://www.peachpie.io/) in order to provide diagnostics, editor help and project templates. See [release notes](https://github.com/peachpiecompiler/peachpie/releases) for more information about feature updates.
+
+## Extension updates:
+
 ### 0.9.42
 
 - PeachPie runs on .NET Core 3.0
-
-### 0.9.41
 
 ### 0.9.40
 
 - improved compatibility
 - bug fixes
-
-### 0.9.39
-
-### 0.9.38
 
 ### 0.9.37
 
