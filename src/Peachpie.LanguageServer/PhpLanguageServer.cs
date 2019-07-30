@@ -113,7 +113,17 @@ namespace Peachpie.LanguageServer
                 return;
             }
 
-            var newProject = await ProjectUtils.TryGetFirstPhpProjectAsync(_rootPath);
+            ProjectHandler newProject = null;
+
+            try
+            {
+                newProject = await ProjectUtils.TryGetFirstPhpProjectAsync(_rootPath);
+            }
+            catch (Exception ex)
+            {
+                SendLogMessage(ex.ToString());
+            }
+
             if (newProject == null)
             {
                 return;
@@ -167,7 +177,14 @@ namespace Peachpie.LanguageServer
                 // For now, only the full document synchronization works
                 string text = changeParams.ContentChanges[0].Text;
 
-                _project.UpdateFile(path, text);
+                try
+                {
+                    _project.UpdateFile(path, text);
+                }
+                catch (Exception ex)
+                {
+                    SendLogMessage(ex.ToString());
+                }
             }
         }
 
