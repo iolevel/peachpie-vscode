@@ -4,6 +4,9 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ## Extension updates:
 
+### 0.9.45
+### 0.9.44
+### 0.9.43
 ### 0.9.42
 
 - PeachPie runs on .NET Core 3.0
