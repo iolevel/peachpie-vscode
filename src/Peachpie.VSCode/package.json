@@ -33,14 +33,19 @@
   ],
   "activationEvents": [
     "onLanguage:php",
-    "onCommand:peachpie.createConsole"
+    "onCommand:peachpie.createconsole",
+    "onCommand:peachpie.createlibrary"
   ],
   "main": "./out/src/extension",
   "contributes": {
     "commands": [
       {
-        "command": "peachpie.createConsole",
+        "command": "peachpie.createconsole",
         "title": "PeachPie: Create console project"
+      },
+      {
+        "command": "peachpie.createlibrary",
+        "title": "PeachPie: Create a class libray project"
       }
     ],
     "breakpoints": [

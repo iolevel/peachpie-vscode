@@ -21,53 +21,100 @@ export function activate(context: vscode.ExtensionContext) {
 
     let languageClientDisposable = startLanguageServer(context);
 
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with  registerCommand
-    // The commandId parameter must match the command field in package.json
-    let createProjectCommand = vscode.commands.registerCommand('peachpie.createConsole', async () => {
-        // We will write successes to the output channel. In case of an error, we will display it also
-        // in the window and skip the remaining operations.
-        channel.show(true);
+    context.subscriptions.push(
+        languageClientDisposable,
+        vscode.commands.registerCommand('peachpie.createconsole', async () => {
+            await createTemplate("console.msbuildproj");
+        }),
+        vscode.commands.registerCommand('peachpie.createlibrary', async () => {
+            await createTemplate("library.msbuildproj");
+        }),
+        channel);
+}
 
-        // Check the opened folder
-        let rootPath = vscode.workspace.rootPath;
-        if (rootPath != null) {
-            showInfo(`Creating PeachPie project in ${rootPath}\n`);
+function startLanguageServer(context: vscode.ExtensionContext): vscode.Disposable {
+    // TODO: Handle the proper publishing of the executable
+    let serverPath = context.asAbsolutePath("out/server/Peachpie.LanguageServer.dll");
+    let serverOptions: ServerOptions = {
+        run: { command: "dotnet", args: [serverPath] },
+        debug: { command: "dotnet", args: [serverPath, "--debug"] }
+    }
+
+    // Options to control the language client
+    let clientOptions: LanguageClientOptions = {
+        // Register the server for PHP documents
+        documentSelector: ['php'],
+        synchronize: {
+            // Notify the server when running dotnet restore on a project in the workspace
+            fileEvents: [
+                workspace.createFileSystemWatcher('**/project.assets.json'),
+                workspace.createFileSystemWatcher('**/*.msbuildproj')
+            ]
+        }
+    }
+
+    // Create the language client and start the server
+    return new LanguageClient("PeachPie Language Server", serverOptions, clientOptions).start();
+}
+
+function showInfo(message: string, doShowWindow = false) {
+    channel.appendLine(message);
+    if (doShowWindow) {
+        vscode.window.showInformationMessage(message);
+    }
+}
+
+function showError(message: string, doShowWindow = true) {
+    channel.appendLine(message);
+    if (doShowWindow) {
+        vscode.window.showErrorMessage(message);
+    }
+}
+
+async function createTemplate(templatename: string) {
+    // We will write successes to the output channel. In case of an error, we will display it also
+    // in the window and skip the remaining operations.
+    channel.show(true);
+
+    // Check the opened folder
+    let rootPath = vscode.workspace.rootPath;
+    if (rootPath != null) {
+        showInfo(`Creating PeachPie project in ${rootPath}\n`);
+    } else {
+        showError("A folder must be opened in the Explorer panel\n");
+        return;
+    }
+
+    // const templatename = "console.msbuildproj"
+
+    // Create .msbuildproj project file:
+    let projectPath = path.join(rootPath, templatename);
+    showInfo(`Creating '${templatename}' ...`);
+    if (fs.existsSync(projectPath)) {
+        showInfo(`Warning: project file already exists, won't be created.`);
+    } else {
+        if (await createProjectFile(projectPath, templatename)) {
+            showInfo("Project file created successfully.");
         } else {
-            showError("A folder must be opened in the Explorer panel\n");
+            showError("Error in creating project file.\n");
             return;
         }
+    }
 
-        const templatename = "console.msbuildproj"
+    // Create or update .tasks.json and .launch.json
+    showInfo("Configuring build and debugging in .tasks.json and .launch.json...");
+    let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
+    if (isTasksSuccess) {
+        showInfo("Build tasks successfully configured\n");
+    } else {
+        showError("Error in configuring the build tasks\n");
+        return;
+    }
 
-        // Create .msbuildproj project file:
-        let projectPath = path.join(rootPath, templatename);
-        showInfo(`Creating '${templatename}' ...`);
-        if (fs.existsSync(projectPath)) {
-            showInfo(`Warning: project file already exists, won't be created.`);
-        } else {
-            if (await createProjectFile(projectPath, templatename)) {
-                showInfo("Project file created successfully.");
-            } else {
-                showError("Error in creating project file.\n");
-                return;
-            }
-        }
-
-        // Create or update .tasks.json and .launch.json
-        showInfo("Configuring build and debugging in .tasks.json and .launch.json...");
-        let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
-        if (isTasksSuccess) {
-            showInfo("Build tasks successfully configured\n");
-        } else {
-            showError("Error in configuring the build tasks\n");
-            return;
-        }
-
-        // Run dotnet restore
-        let isError = false;
-        showInfo("Running dotnet restore to install PeachPie Sdk ...");
-        await execChildProcess("dotnet restore", rootPath)
+    // Run dotnet restore
+    let isError = false;
+    showInfo("Running dotnet restore to install PeachPie Sdk ...");
+    await execChildProcess("dotnet restore", rootPath)
         .then((data: string) => {
             showInfo(data);
             if (data.includes("Restore completed in")) {
@@ -81,65 +128,23 @@ export function activate(context: vscode.ExtensionContext) {
             showError("For building and executing, PeachPie needs .NET Core CLI tools to be available on the path. Make sure they are installed properly.\n");
             isError = true;
         });
-        if (isError) {
-            return;
-        }
+    if (isError) {
+        return;
+    }
 
-        // Activate Omnisharp C# extension for debugging
-        let csharpExtension = vscode.extensions.getExtension("ms-vscode.csharp");
-        if (csharpExtension == null) {
-            showError("Install OmniSharp C# extension in order to enable the debugging of PeachPie projects\n");
-            return;            
+    // Activate Omnisharp C# extension for debugging
+    let csharpExtension = vscode.extensions.getExtension("ms-vscode.csharp");
+    if (csharpExtension == null) {
+        showError("Install OmniSharp C# extension in order to enable the debugging of PeachPie projects\n");
+        return;
+    } else {
+        if (csharpExtension.isActive) {
+            showInfo("OmniSharp C# extension is already active\n");
         } else {
-            if (csharpExtension.isActive) {
-                showInfo("OmniSharp C# extension is already active\n");
-            } else {
-                showInfo("Activating OmniSharp C# extension to take care of the project structure and debugging...\n");
-                await csharpExtension.activate();
-            }
-            showInfo("PeachPie project was successfully configured", true);
+            showInfo("Activating OmniSharp C# extension to take care of the project structure and debugging...\n");
+            await csharpExtension.activate();
         }
-    });
-
-    context.subscriptions.push(languageClientDisposable, createProjectCommand, channel);
-}
-
-function startLanguageServer(context: vscode.ExtensionContext) : vscode.Disposable {
-    // TODO: Handle the proper publishing of the executable
-    let serverPath = context.asAbsolutePath("out/server/Peachpie.LanguageServer.dll");
-    let serverOptions: ServerOptions = {
-        run : { command: "dotnet", args: [ serverPath ] },
-        debug: { command: "dotnet", args: [ serverPath, "--debug" ] }
-    }
-
-    // Options to control the language client
-    let clientOptions: LanguageClientOptions = {
-        // Register the server for PHP documents
-        documentSelector: ['php'],
-        synchronize: {
-            // Notify the server when running dotnet restore on a project in the workspace
-            fileEvents: [
-                workspace.createFileSystemWatcher('**/project.assets.json'),
-                workspace.createFileSystemWatcher('**/*.msbuildproj')
-            ] 
-        }
-    }
-
-    // Create the language client and start the server
-    return new LanguageClient("PeachPie Language Server", serverOptions, clientOptions).start();
-}
-
-function showInfo(message: string, doShowWindow = false) {
-    channel.appendLine(message);    
-    if (doShowWindow) {
-        vscode.window.showInformationMessage(message);
-    }
-}
-
-function showError(message: string, doShowWindow = true) {
-    channel.appendLine(message);
-    if (doShowWindow) {
-        vscode.window.showErrorMessage(message);
+        showInfo("PeachPie project was successfully configured", true);
     }
 }
 
@@ -150,9 +155,9 @@ async function createProjectFile(filePath: string, templateFile: string): Promis
     let extensionDir = vscode.extensions.getExtension("iolevel.peachpie-vscode").extensionPath;
     let projectContent = fs.readFileSync(extensionDir + "/templates/" + templateFile).toString();
     let projectEdit = vscode.TextEdit.insert(new vscode.Position(0, 0), projectContent);
-    
+
     let wsEdit = new vscode.WorkspaceEdit();
-    wsEdit.set(projectUri, [ projectEdit ]);
+    wsEdit.set(projectUri, [projectEdit]);
     let isSuccess = await vscode.workspace.applyEdit(wsEdit);
 
     if (isSuccess) {
