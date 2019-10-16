@@ -17,7 +17,7 @@
     "url": "https://github.com/peachpiecompiler/peachpie.git"
   },
   "engines": {
-    "vscode": "^1.25.0",
+    "vscode": "^1.33.0",
     "node": "^8.11.0"
   },
   "categories": [
@@ -85,11 +85,11 @@
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "typescript": "^2.8.1",
-    "vscode": "^1.1.17",
+    "typescript": "^3.5.3",
+    "vscode": "^1.1.35",
     "mocha": "^2.3.3",
-    "@types/node": "^7.0.43",
-    "@types/mocha": "^2.2.32"
+    "@types/node": "^10.14.12",
+    "@types/mocha": "^5.2.7"
   },
   "dependencies": {
     "vscode-languageclient": "^5.1.0",
