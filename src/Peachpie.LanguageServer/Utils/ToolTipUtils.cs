@@ -235,7 +235,7 @@ namespace Peachpie.LanguageServer
 
                 if (mask != null)
                 {
-                    result.Append(" : ");
+                    result.Append(": ");
                     result.Append(ctx.ToString(mask.Value));
                 }
             }
@@ -245,13 +245,14 @@ namespace Peachpie.LanguageServer
             {
                 //  = <value>
                 var value = expression.ConstantValue.Value;
-                string valueStr = null;
+                string valueStr;
                 if (value == null) valueStr = "NULL";
                 else if (value is int) valueStr = ((int)value).ToString();
                 else if (value is string) valueStr = "\"" + ((string)value).Replace("\"", "\\\"").Replace("\n", "\\n") + "\"";
                 else if (value is long) valueStr = ((long)value).ToString();
                 else if (value is double) valueStr = ((double)value).ToString(CultureInfo.InvariantCulture);
                 else if (value is bool) valueStr = (bool)value ? "TRUE" : "FALSE";
+                else valueStr = value.ToString();
 
                 if (valueStr != null)
                 {

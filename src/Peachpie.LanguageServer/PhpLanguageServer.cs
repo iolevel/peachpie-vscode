@@ -215,14 +215,20 @@ namespace Peachpie.LanguageServer
 
         private void ProcessHover(object requestId, TextDocumentPositionParams hoverParams)
         {
-            ToolTipInfo tooltip = null;
+            ToolTipInfo tooltip;
+
             if (_project != null)
             {
                 string filepath = PathUtils.NormalizePath(hoverParams.TextDocument.Uri);
                 tooltip = _project.ObtainToolTip(filepath, hoverParams.Position.Line, hoverParams.Position.Character);
             }
+            else
+            {
+                tooltip = null;
+            }
 
             Hover response;
+
             if (tooltip != null)
             {
                 var codePart = new MarkedString()
@@ -241,11 +247,9 @@ namespace Peachpie.LanguageServer
             else
             {
                 // Return empty response to hide the "Loading..." text in the box
-                response = new Hover()
-                {
-                    Contents = Array.Empty<object>(),
-                };
+                response = null;
             }
+
             _messageWriter.WriteResponse(requestId, response);
         }
 
