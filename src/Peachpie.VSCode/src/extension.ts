@@ -17,7 +17,7 @@ let channel: vscode.OutputChannel;
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     channel = vscode.window.createOutputChannel("PeachPie");
-    channel.appendLine("PeachPie extension was activated");
+    channel.appendLine("PeachPie extension was activated.");
 
     let languageClientDisposable = startLanguageServer(context);
 
@@ -79,9 +79,9 @@ async function createTemplate(templatename: string) {
     // Check the opened folder
     let rootPath = vscode.workspace.rootPath;
     if (rootPath != null) {
-        showInfo(`Creating PeachPie project in ${rootPath}\n`);
+        showInfo(`Creating PeachPie project in '${rootPath}' ...\n`);
     } else {
-        showError("A folder must be opened in the Explorer panel\n");
+        showError("A folder must be opened in the Explorer panel.\n");
         return;
     }
 
@@ -102,12 +102,12 @@ async function createTemplate(templatename: string) {
     }
 
     // Create or update .tasks.json and .launch.json
-    showInfo("Configuring build and debugging in .tasks.json and .launch.json...");
+    showInfo("Configuring build and debugging in 'tasks.json' and 'launch.json' ...");
     let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
     if (isTasksSuccess) {
-        showInfo("Build tasks successfully configured\n");
+        showInfo("Build tasks successfully configured.\n");
     } else {
-        showError("Error in configuring the build tasks\n");
+        showError("Error in configuring the build tasks.\n");
         return;
     }
 
@@ -118,9 +118,9 @@ async function createTemplate(templatename: string) {
         .then((data: string) => {
             showInfo(data);
             if (data.includes("Restore completed in")) {
-                showInfo("Project dependencies were successfully installed\n");
+                showInfo("Project dependencies were successfully installed.\n");
             } else {
-                showError("Error in installing project dependencies\n");
+                showError("Error in installing project dependencies.\n");
                 isError = true;
             }
         })
@@ -135,16 +135,16 @@ async function createTemplate(templatename: string) {
     // Activate Omnisharp C# extension for debugging
     let csharpExtension = vscode.extensions.getExtension("ms-vscode.csharp");
     if (csharpExtension == null) {
-        showError("Install OmniSharp C# extension in order to enable the debugging of PeachPie projects\n");
+        showError("Install OmniSharp C# extension in order to enable the debugging of PeachPie projects.\n");
         return;
     } else {
         if (csharpExtension.isActive) {
-            showInfo("OmniSharp C# extension is already active\n");
+            showInfo("OmniSharp C# extension is already active.\n");
         } else {
-            showInfo("Activating OmniSharp C# extension to take care of the project structure and debugging...\n");
+            showInfo("Activating OmniSharp C# extension to take care of the project structure and debugging ...\n");
             await csharpExtension.activate();
         }
-        showInfo("PeachPie project was successfully configured", true);
+        showInfo("PeachPie project was successfully configured.", true);
     }
 }
 
