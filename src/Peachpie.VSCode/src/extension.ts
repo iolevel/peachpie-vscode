@@ -11,25 +11,108 @@ import { defaultTasksJson, defaultLaunchJson } from './defaults';
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
 import { workspace } from "vscode";
 
+import { XMLHttpRequest, Document } from 'xmlhttprequest';
+
 let channel: vscode.OutputChannel;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     channel = vscode.window.createOutputChannel("PeachPie");
     channel.appendLine("PeachPie extension was activated.");
 
-    let languageClientDisposable = startLanguageServer(context);
-
     context.subscriptions.push(
-        languageClientDisposable,
+        channel,
+
         vscode.commands.registerCommand('peachpie.createconsole', async () => {
             await createTemplate("console.msbuildproj");
         }),
+
         vscode.commands.registerCommand('peachpie.createlibrary', async () => {
             await createTemplate("library.msbuildproj");
         }),
-        channel);
+
+        startLanguageServer(context)
+    );
+
+    //
+    await checkNewsletter(context);
+}
+
+// check for newsletter
+async function checkNewsletter(context: vscode.ExtensionContext) {
+
+    const check_key = "last-newsletter-check";
+    const check_interval = 1000 * 60 * 60 * 24; // number of milliseconds between two checks // 24h hours
+    var last_check = context.globalState.get<number>(check_key, -1);    // time stamp of the last newsletter check
+    var now = Date.now();
+
+    if (now - last_check < check_interval) {
+        return;
+    }
+
+    // download RSS feed XML
+    const rss_feed_url: string = "https://www.peachpie.io/feed";
+    let xmlfeed = await new Promise<Document | undefined>(function (resolve, reject) {
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", rss_feed_url, true);
+        xhr.onreadystatechange = function () {
+            if (this.readyState == xhr.DONE) {
+                if (this.status == 200) {
+                    // this.responseXML is always "" even when responseType is set :/
+                    const xmldom = require("xmldom");
+                    var doc = new xmldom.DOMParser().parseFromString(this.responseText);
+                    resolve(doc); // success -> and succeess message
+                } else {
+                    resolve(undefined);
+                }
+            }
+        };
+        xhr.ontimeout = () => {
+            resolve(undefined)
+        };
+        xhr.onerror = () => {
+            resolve(undefined);
+        };
+        xhr.send(null);
+    });
+
+    if (!xmlfeed) {
+        return;
+    }
+
+    // find article that was not shown yet (<pubDate>):
+    const xpath = require("xpath");
+    let items = xpath.select('//item', xmlfeed);
+    let article = items.find(function (item) {
+        let pubDate = xpath.select1("pubDate", item);
+        if (pubDate && xpath.select1("title", item) && xpath.select1("link", item)) {
+            let pubDateValue = Date.parse(pubDate.textContent);
+            if (pubDateValue > last_check) {
+                return true;
+            }
+        }
+    });
+
+    // show notification about the article (<title>, <link>)
+    if (article) {
+
+        // remember we checked for news:
+        context.globalState.update(check_key, now);
+
+        // show notification:
+        let title = xpath.select1("title", article).textContent;
+        let link = xpath.select1("link", article).textContent;
+
+        channel.appendLine(`New article: ${title} at ${link}`)
+
+        const readnow = "Read now"
+        const dismiss = "Dismiss"
+        
+        if (await vscode.window.showInformationMessage(title, readnow/*, dismiss*/) == readnow) {
+            require("open")(link);
+        }
+    }
 }
 
 function startLanguageServer(context: vscode.ExtensionContext): vscode.Disposable {

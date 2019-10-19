@@ -99,6 +99,10 @@
   "dependencies": {
     "vscode-languageclient": "^5.1.0",
     "vscode-languageserver": "^5.1.0",
-    "vscode-nls": "^3.2.2"
+    "vscode-nls": "^3.2.2",
+    "xmldom": "^0.1.27",
+    "xpath": "^0.0.27",
+    "open": "^0.0.5",
+    "xmlhttprequest": "^1.8.0"
   }
 }
