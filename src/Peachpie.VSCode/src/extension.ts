@@ -43,7 +43,9 @@ function startLanguageServer(context: vscode.ExtensionContext): vscode.Disposabl
     // Options to control the language client
     let clientOptions: LanguageClientOptions = {
         // Register the server for PHP documents
-        documentSelector: ['php'],
+        documentSelector: [{
+            language: 'php',
+        }],
         synchronize: {
             // Notify the server when running dotnet restore on a project in the workspace
             fileEvents: [
