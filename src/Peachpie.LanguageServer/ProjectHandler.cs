@@ -32,7 +32,9 @@ namespace Peachpie.LanguageServer
         }
 
         readonly CompilationDiagnosticBroker _diagnosticBroker;
+
         readonly HashSet<string> _filesWithParserErrors = new HashSet<string>();
+
         private HashSet<string> _filesWithSemanticDiagnostics = new HashSet<string>();
 
         public PhpCompilation Compilation => _diagnosticBroker.Compilation;
@@ -113,7 +115,6 @@ namespace Peachpie.LanguageServer
             var compilation = _diagnosticBroker.LastAnalysedCompilation;
             return ToolTipUtils.ObtainToolTip(compilation, filepath, line, character);
         }
-
 
         private void HandleCompilationDiagnostics(IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
         {

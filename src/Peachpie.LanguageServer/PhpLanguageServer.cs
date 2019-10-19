@@ -51,6 +51,8 @@ namespace Peachpie.LanguageServer
 
                 switch (request.Method)
                 {
+                    // initialize
+
                     case "initialize":
                         var initializeParams = request.Params.ToObject<InitializeParams>();
                         SendInitializationResponse(request);
@@ -59,6 +61,27 @@ namespace Peachpie.LanguageServer
                     case "initialized":
                         // ignore
                         break;
+
+                    // shutdown/exit
+
+                    case "shutdown":
+                        _project?.Dispose();
+                        _messageWriter.WriteResponse<object>(request.Id, null); // empty response
+                        break;  // not exit the process
+
+                    case "exit":
+                        _project?.Dispose();
+                        return; // exit the process
+
+                    // workspace
+
+                    case "workspace/didChangeWatchedFiles":
+                        var changeWatchedParams = request.Params.ToObject<DidChangeWatchedFilesParams>();
+                        await ProcessFileChangesAsync(changeWatchedParams);
+                        break;
+
+                    // textDocument
+
                     case "textDocument/didOpen":
                         var openParams = request.Params.ToObject<DidOpenTextDocumentParams>();
                         // TODO: Decide how to handle opened files that are not in the current folder
@@ -67,10 +90,6 @@ namespace Peachpie.LanguageServer
                         var changeParams = request.Params.ToObject<DidChangeTextDocumentParams>();
                         await ProcessDocumentChanges(changeParams);
                         break;
-                    case "workspace/didChangeWatchedFiles":
-                        var changeWatchedParams = request.Params.ToObject<DidChangeWatchedFilesParams>();
-                        await ProcessFileChangesAsync(changeWatchedParams);
-                        break;
                     case "textDocument/hover":
                         var hoverParams = request.Params.ToObject<TextDocumentPositionParams>();
                         ProcessHover(request.Id, hoverParams);
@@ -78,6 +97,9 @@ namespace Peachpie.LanguageServer
                     case "textDocument/didClose":
                         // ignored
                         break;
+
+                    //
+
                     default:
                         if (request.Method.StartsWith("$/"))
                         {
