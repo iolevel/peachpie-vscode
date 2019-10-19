@@ -44,6 +44,7 @@ function startLanguageServer(context: vscode.ExtensionContext): vscode.Disposabl
     let clientOptions: LanguageClientOptions = {
         // Register the server for PHP documents
         documentSelector: [{
+            scheme: 'file',
             language: 'php',
         }],
         synchronize: {
