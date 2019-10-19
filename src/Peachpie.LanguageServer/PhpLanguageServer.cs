@@ -75,6 +75,9 @@ namespace Peachpie.LanguageServer
                         var hoverParams = request.Params.ToObject<TextDocumentPositionParams>();
                         ProcessHover(request.Id, hoverParams);
                         break;
+                    case "textDocument/didClose":
+                        // ignored
+                        break;
                     default:
                         if (request.Method.StartsWith("$/"))
                         {
