@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="16.0.461" />
-    <PackageReference Include="Peachpie.CodeAnalysis" Version="0.9.46" />
+    <PackageReference Include="Peachpie.CodeAnalysis" Version="0.9.500" />
     <PackageReference Include="Microsoft.Build.Runtime" Version="16.0.461" />
     <PackageReference Include="Microsoft.Build.NuGetSdkResolver" Version="5.1.0-*" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
