@@ -87,12 +87,13 @@ namespace Peachpie.LanguageServer
                         // TODO: Decide how to handle opened files that are not in the current folder
                         break;
                     case "textDocument/didChange":
-                        var changeParams = request.Params.ToObject<DidChangeTextDocumentParams>();
-                        await ProcessDocumentChanges(changeParams);
+                        await ProcessDocumentChanges(request.Params.ToObject<DidChangeTextDocumentParams>());
                         break;
                     case "textDocument/hover":
-                        var hoverParams = request.Params.ToObject<TextDocumentPositionParams>();
-                        ProcessHover(request.Id, hoverParams);
+                        ProcessHover(request.Id, request.Params.ToObject<TextDocumentPositionParams>());
+                        break;
+                    case "textDocument/definition":
+                        ProcessGoToDefinition(request.Id, request.Params.ToObject<TextDocumentPositionParams>());
                         break;
                     case "textDocument/didClose":
                         // ignored
@@ -213,6 +214,28 @@ namespace Peachpie.LanguageServer
             }
         }
 
+        private void ProcessGoToDefinition(object requestId, TextDocumentPositionParams docPosition)
+        {
+            // result: Location | Location[] | LocationLink[] | null
+
+            Protocol.Location[] result = null;
+
+            if (_project != null)
+            {
+                string filepath = PathUtils.NormalizePath(docPosition.TextDocument.Uri);
+                try
+                {
+                    var locations = _project.ObtainDefinition(filepath, docPosition.Position.Line, docPosition.Position.Character);
+                    result = locations?.ToArray();
+                }
+                catch (NotImplementedException) { } // might not be implemented
+                catch (NotSupportedException) { }
+                catch (AggregateException) { }
+            }
+
+            _messageWriter.WriteResponse(requestId, result);
+        }
+
         private void ProcessHover(object requestId, TextDocumentPositionParams hoverParams)
         {
             ToolTipInfo tooltip;
@@ -259,10 +282,9 @@ namespace Peachpie.LanguageServer
             {
                 Capabilities = new ServerCapabilities()
                 {
-                    // Full content synchronization
-                    // TODO: Introduce an enum for this
-                    TextDocumentSync = 1,
-                    HoverProvider = true
+                    TextDocumentSync = TextDocumentSyncKind.Full,   // TOOD: change to incremental to improve perf.
+                    HoverProvider = true,
+                    DefinitionProvider = true,
                 }
             };
             _messageWriter.WriteResponse(request.Id, initializeResult);
@@ -319,7 +341,7 @@ PeachPie Language Server
                     .Select(diagnostic =>
                     new Protocol.Diagnostic()
                     {
-                        Range = ConvertLocation(diagnostic.Location),
+                        Range = diagnostic.Location.AsRange(),
                         Severity = ConvertSeverity(diagnostic.Severity),
                         Code = diagnostic.Id,
                         Source = "PeachPie",
@@ -328,14 +350,6 @@ PeachPie Language Server
             };
 
             _messageWriter.WriteNotification("textDocument/publishDiagnostics", diagnosticsParams);
-        }
-
-        private static Range ConvertLocation(Location location)
-        {
-            var lineSpan = location.GetLineSpan();
-            return new Range(
-                new Position(lineSpan.StartLinePosition.Line, lineSpan.StartLinePosition.Character),
-                new Position(lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character));
         }
 
         private static int? ConvertSeverity(DiagnosticSeverity severity)

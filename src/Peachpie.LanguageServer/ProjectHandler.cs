@@ -16,7 +16,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Peachpie.LanguageServer
 {
-    public class ProjectHandler : IDisposable
+    class ProjectHandler : IDisposable
     {
         public class DocumentDiagnosticsEventArgs : EventArgs
         {
@@ -102,17 +102,33 @@ namespace Peachpie.LanguageServer
             }
         }
 
+        internal IEnumerable<Protocol.Location> ObtainDefinition(string filepath, int line, int character)
+        {
+            var compilation = _diagnosticBroker.LastAnalysedCompilation;
+
+            // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
+            if (compilation == null ||
+                compilation != _diagnosticBroker.Compilation)
+            {
+                return Array.Empty<Protocol.Location>();
+            }
+
+            // Find the symbols gathered from the given source code
+            return ToolTipUtils.ObtainDefinition(compilation, filepath, line, character);
+        }
+
         public ToolTipInfo ObtainToolTip(string filepath, int line, int character)
         {
+            var compilation = _diagnosticBroker.LastAnalysedCompilation;
+
             // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
-            if (_diagnosticBroker.LastAnalysedCompilation == null
-                || _diagnosticBroker.LastAnalysedCompilation != _diagnosticBroker.Compilation)
+            if (compilation == null ||
+                compilation != _diagnosticBroker.Compilation)
             {
                 return null;
             }
 
             // Find the symbols gathered from the given source code
-            var compilation = _diagnosticBroker.LastAnalysedCompilation;
             return ToolTipUtils.ObtainToolTip(compilation, filepath, line, character);
         }
 

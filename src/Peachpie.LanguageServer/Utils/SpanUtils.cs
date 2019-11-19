@@ -1,6 +1,7 @@
 ﻿using Devsense.PHP.Text;
 using Microsoft.CodeAnalysis;
 using Pchp.CodeAnalysis.Symbols;
+using Peachpie.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +30,15 @@ namespace Peachpie.LanguageServer
         {
             return parameter.IsImplicitlyDeclared ? Span.Invalid : 
                 parameter.Locations.FirstOrDefault(l => l.IsInSource)?.SourceSpan.ToSpan() ?? Span.Invalid;
+        }
+
+        public static Protocol.Range AsRange(this Microsoft.CodeAnalysis.Location location) => AsRange(location.GetLineSpan());
+
+        public static Protocol.Range AsRange(this FileLinePositionSpan span)
+        {
+            return new Range(
+                new Position(span.StartLinePosition.Line, span.StartLinePosition.Character),
+                new Position(span.EndLinePosition.Line, span.EndLinePosition.Character));
         }
     }
 }

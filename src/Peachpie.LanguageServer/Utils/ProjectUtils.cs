@@ -18,7 +18,7 @@ using System.Text;
 
 namespace Peachpie.LanguageServer
 {
-    public static class ProjectUtils
+    static class ProjectUtils
     {
         private const string SolutionNamePattern = "*.sln";
         private const string ProjectNamePattern = "*.msbuildproj";

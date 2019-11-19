@@ -17,10 +17,7 @@ namespace Peachpie.LanguageServer
 {
     internal static class ToolTipUtils
     {
-        /// <summary>
-        /// Returns the text of a tooltip corresponding to the given position in the code.
-        /// </summary>
-        public static ToolTipInfo ObtainToolTip(PhpCompilation compilation, string filepath, int line, int character)
+        public static SourceSymbolSearcher.SymbolStat FindDefinition(PhpCompilation compilation, string filepath, int line, int character)
         {
             var tree = compilation.SyntaxTrees.FirstOrDefault(t => t.FilePath == filepath);
             if (tree == null)
@@ -58,12 +55,35 @@ namespace Peachpie.LanguageServer
                 }
             }
 
-            if (searchResult == null)
-            {
-                return null;
-            }
+            return searchResult;
+        }
 
-            return FormulateToolTip(searchResult);
+        public static IEnumerable<Protocol.Location> ObtainDefinition(PhpCompilation compilation, string filepath, int line, int character)
+        {
+            var result = FindDefinition(compilation, filepath, line, character);
+            if (result != null && result.Symbol != null)
+            {
+                foreach (var loc in result.Symbol.Locations)
+                {
+                    var pos = loc.GetLineSpan();
+                    if (pos.IsValid)
+                    {
+                        yield return new Protocol.Location
+                        {
+                            Uri = new Uri(pos.Path).AbsoluteUri,
+                            Range = pos.AsRange(),
+                        };
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the text of a tooltip corresponding to the given position in the code.
+        /// </summary>
+        public static ToolTipInfo ObtainToolTip(PhpCompilation compilation, string filepath, int line, int character)
+        {
+            return FormulateToolTip(FindDefinition(compilation, filepath, line, character));
         }
 
         /// <summary>
@@ -71,7 +91,7 @@ namespace Peachpie.LanguageServer
         /// </summary>
         private static ToolTipInfo FormulateToolTip(SourceSymbolSearcher.SymbolStat searchResult)
         {
-            if (searchResult.Symbol == null && searchResult.BoundExpression == null)
+            if (searchResult == null || (searchResult.Symbol == null && searchResult.BoundExpression == null))
             {
                 return null;
             }
@@ -103,7 +123,7 @@ namespace Peachpie.LanguageServer
                 {
                     // ...
                 }
-                
+
                 //switch ((((BoundVariableRef)expression).Variable).VariableKind)
                 //{
                 //    case VariableKind.LocalVariable:
