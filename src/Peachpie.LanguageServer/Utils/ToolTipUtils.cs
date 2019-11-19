@@ -86,6 +86,21 @@ namespace Peachpie.LanguageServer
             return FormulateToolTip(FindDefinition(compilation, filepath, line, character));
         }
 
+        static string FormulateTypeHint(ITypeSymbol type)
+        {
+            if (type == null)
+            {
+                return null;
+            }
+
+            if (type.MetadataName == "PhpValue" || type.MetadataName == "PhpAlias") // TODO: helpers!!!
+            {
+                return null;    // "mixed", "&"
+            }
+
+            return type.Name;
+        }
+
         /// <summary>
         /// Creates the text of a tooltip.
         /// </summary>
@@ -176,6 +191,11 @@ namespace Peachpie.LanguageServer
                     if (first) first = false;
                     else result.Append(", ");
 
+                    var thint = FormulateTypeHint(p.Type);
+                    if (thint != null)
+                    {
+                        result.Append(thint + " ");
+                    }
                     result.Append("$" + p.Name);
                 }
                 while (nopt-- > 0) { result.Append(']'); }
@@ -227,6 +247,7 @@ namespace Peachpie.LanguageServer
             }
             else if (symbol is IPhpTypeSymbol phpt)
             {
+                kind = "type";
                 if (phpt.TypeKind == TypeKind.Interface) result.Append("interface");
                 else if (phpt.IsTrait) result.Append("trait");
                 else result.Append("class");
