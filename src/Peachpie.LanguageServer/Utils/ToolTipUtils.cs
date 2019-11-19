@@ -110,6 +110,7 @@ namespace Peachpie.LanguageServer
             }
 
             var result = new StringBuilder(32);
+            var kind = string.Empty;
 
             if (expression is BoundVariableRef varref && varref.Name.IsDirect)
             {
@@ -117,11 +118,11 @@ namespace Peachpie.LanguageServer
 
                 if (symbol is IParameterSymbol)
                 {
-                    result.Append("(parameter) ");
+                    kind = "parameter";
                 }
                 else
                 {
-                    // ...
+                    kind = "variable";
                 }
 
                 //switch ((((BoundVariableRef)expression).Variable).VariableKind)
@@ -141,19 +142,19 @@ namespace Peachpie.LanguageServer
             }
             else if (expression is BoundGlobalConst)
             {
-                result.Append("(const) ");
+                kind = "global constant";
                 result.Append(((BoundGlobalConst)expression).Name);
             }
             else if (expression is BoundPseudoConst)
             {
-                result.Append("(magic const) ");
+                kind = "magic constant";
                 result.Append("__");
                 result.Append(((BoundPseudoConst)expression).ConstType.ToString().ToUpperInvariant());
                 result.Append("__");
             }
             else if (symbol is IParameterSymbol)
             {
-                result.Append("(parameter) ");
+                kind = "parameter";
                 result.Append("$" + symbol.Name);
             }
             else if (symbol is IPhpRoutineSymbol)
@@ -189,7 +190,7 @@ namespace Peachpie.LanguageServer
 
                     if (fld.IsClassConstant)
                     {
-                        result.Append("(const)");
+                        kind = "class constant";
                     }
                     else
                     {
@@ -224,9 +225,8 @@ namespace Peachpie.LanguageServer
                     return null;
                 }
             }
-            else if (symbol is IPhpTypeSymbol)
+            else if (symbol is IPhpTypeSymbol phpt)
             {
-                var phpt = (IPhpTypeSymbol)symbol;
                 if (phpt.TypeKind == TypeKind.Interface) result.Append("interface");
                 else if (phpt.IsTrait) result.Append("trait");
                 else result.Append("class");
@@ -295,7 +295,7 @@ namespace Peachpie.LanguageServer
             }
 
             //
-            return new ToolTipInfo(result.ToString(), !string.IsNullOrWhiteSpace(docxml) ? docxml : null);
+            return new ToolTipInfo("<?php //" + kind + "\n" + result.ToString(), !string.IsNullOrWhiteSpace(docxml) ? docxml : null);
         }
     }
 }
