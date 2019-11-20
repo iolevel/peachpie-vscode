@@ -15,6 +15,7 @@ using System.Threading;
 using Microsoft.Build.Logging;
 using Microsoft.CodeAnalysis.Text;
 using System.Text;
+using Peachpie.LanguageServer.Workspaces;
 
 namespace Peachpie.LanguageServer
 {
@@ -82,7 +83,7 @@ namespace Peachpie.LanguageServer
                 var projectInstance = buildResult.ProjectStateAfterBuild;
 
                 var metadataReferences = GatherReferences(project, projectInstance, buildResult)
-                    .Select(path => MetadataReference.CreateFromFile(path))
+                    .Select(path => MetadataReference.CreateFromFile(path, documentation: XmlDocumentationProvider.CreateFromFile(Path.ChangeExtension(path, "xml"))))
                     .ToArray();
 
                 if (metadataReferences.Length == 0)

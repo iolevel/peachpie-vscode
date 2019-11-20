@@ -4,6 +4,7 @@
     <Version>0.9.600</Version>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <AssemblyName>Peachpie.LanguageServer</AssemblyName>
+    <LangVersion>latest</LangVersion>
     <OutputType>Exe</OutputType>
     <PackageId>Peachpie.LanguageServer</PackageId>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
