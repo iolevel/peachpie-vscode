@@ -9,9 +9,11 @@ using Pchp.CodeAnalysis.Symbols;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace Peachpie.LanguageServer
 {
@@ -201,9 +203,8 @@ namespace Peachpie.LanguageServer
                 while (nopt-- > 0) { result.Append(']'); }
                 result.Append(')');
             }
-            else if (expression is BoundFieldRef)
+            else if (expression is BoundFieldRef fld)
             {
-                var fld = (BoundFieldRef)expression;
                 if (fld.FieldName.IsDirect)
                 {
                     string containedType = null;
@@ -302,21 +303,92 @@ namespace Peachpie.LanguageServer
                 }
             }
 
-            // description
-            string docxml = symbol?.GetDocumentationCommentXml();
-            //if (docxml != null)
-            //{
-            //    // remove wellknown ctx parameter // TODO: other implicit parameters
-            //    docxml = Regex.Replace(docxml, @"<param\sname=\""ctx\"">[^<]+</param>", "");
-            //}
+            string description;
 
-            if (!string.IsNullOrWhiteSpace(docxml))
+            try
             {
-                docxml = Regex.Replace(docxml, @"\<param\sname=\""(\w+)\""\>", "$$$1: ");
+                description = XmlDocumentationToMarkdown(symbol?.GetDocumentationCommentXml());
+            }
+            catch
+            {
+                description = null;
+            }
+
+            // description
+            return new ToolTipInfo("<?php //" + kind + "\n" + result.ToString(), description);
+        }
+
+        static string XmlDocumentationToMarkdown(string xmldoc)
+        {
+            if (string.IsNullOrWhiteSpace(xmldoc))
+            {
+                return string.Empty;
+            }
+
+            var result = new StringBuilder(xmldoc.Length);
+            var settings = new XmlReaderSettings
+            {
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true,
+                ValidationType = ValidationType.None
+            };
+
+            using (var xml = XmlReader.Create(new StringReader("<summary>" + xmldoc + "</summary>"), settings))
+            {
+                bool skipped = false;
+                while (skipped || xml.Read())
+                {
+                    skipped = false;
+
+                    switch (xml.NodeType)
+                    {
+                        case XmlNodeType.Element:
+                            // <summary>
+                            switch (xml.Name.ToLowerInvariant())
+                            {
+                                case "summary":
+                                    break;  // OK
+                                case "remarks":
+                                    result.Append("\n\n**Remarks:**\n");
+                                    break;
+                                case "returns":
+                                    result.Append("\n\n**Returns:**\n");
+                                    break;
+                                case "c":
+                                    result.AppendFormat("**{0}**", xml.ReadInnerXml());
+                                    break;
+                                case "paramref":
+                                    if (xml.HasAttributes)
+                                        result.AppendFormat("**${0}**", xml.GetAttribute("name"));
+                                    break;
+                                case "code":
+                                    result.AppendFormat("```\n{0}```\n", xml.ReadInnerXml());
+                                    break;
+                                case "see":
+                                    if (xml.HasAttributes)
+                                        result.AppendFormat("**{0}**", xml.GetAttribute("cref"));
+                                    break;
+                                case "a":
+                                    if (xml.HasAttributes)
+                                        result.AppendFormat("({1})[{0}]", xml.GetAttribute("href"), xml.ReadInnerXml());
+                                    break;
+                                default:
+                                    xml.Skip();
+                                    skipped = true; // do not call Read()!
+                                    break;
+                            }
+                            break;
+
+                        case XmlNodeType.Text:
+                            result.Append(xml.Value.Replace("*", "\\*"));
+                            break;
+                    }
+                }
             }
 
             //
-            return new ToolTipInfo("<?php //" + kind + "\n" + result.ToString(), !string.IsNullOrWhiteSpace(docxml) ? docxml : null);
+            return result.ToString().Trim();
         }
     }
 }
