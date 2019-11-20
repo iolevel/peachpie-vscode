@@ -367,7 +367,7 @@ namespace Peachpie.LanguageServer
                                     break;
                                 case "see":
                                     if (xml.HasAttributes)
-                                        result.AppendFormat("**{0}**", xml.GetAttribute("cref"));
+                                        result.AppendFormat("**{0}**", xml.GetAttribute("langword") ?? xml.GetAttribute("cref"));
                                     break;
                                 case "a":
                                     if (xml.HasAttributes)
