@@ -107,8 +107,7 @@ namespace Peachpie.LanguageServer
             var compilation = _diagnosticBroker.LastAnalysedCompilation;
 
             // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
-            if (compilation == null ||
-                compilation != _diagnosticBroker.Compilation)
+            if (compilation == null)
             {
                 return Array.Empty<Protocol.Location>();
             }
@@ -122,8 +121,7 @@ namespace Peachpie.LanguageServer
             var compilation = _diagnosticBroker.LastAnalysedCompilation;
 
             // We have to work with already fully analyzed and bound compilation that is up-to-date with the client's code
-            if (compilation == null ||
-                compilation != _diagnosticBroker.Compilation)
+            if (compilation == null)
             {
                 return null;
             }
