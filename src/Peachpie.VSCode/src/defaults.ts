@@ -27,7 +27,7 @@ export var defaultLaunchJson =
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/project.dll",
+      "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/library.dll",
       "args": [],
       "cwd": "${workspaceRoot}",
       "externalConsole": false,

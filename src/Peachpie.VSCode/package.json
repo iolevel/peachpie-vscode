@@ -45,7 +45,7 @@
       },
       {
         "command": "peachpie.createlibrary",
-        "title": "PeachPie: Create a class libray project"
+        "title": "PeachPie: Create a class library project"
       }
     ],
     "breakpoints": [
