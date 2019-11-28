@@ -318,6 +318,26 @@ namespace Peachpie.LanguageServer
             return new ToolTipInfo("<?php //" + kind + "\n" + result.ToString(), description);
         }
 
+        static string TrimLines(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            var result = new StringBuilder(text.Length);
+            string line;
+            using (var lines = new StringReader(text))
+            {
+                while ((line = lines.ReadLine()) != null)
+                {
+                    result.AppendLine(line.Trim());
+                }
+            }
+
+            return result.ToString();
+        }
+
         static string XmlDocumentationToMarkdown(string xmldoc)
         {
             if (string.IsNullOrWhiteSpace(xmldoc))
@@ -325,6 +345,10 @@ namespace Peachpie.LanguageServer
                 return string.Empty;
             }
 
+            // trim the lines (may be misinterpreted as code block in markdown)
+            xmldoc = TrimLines(xmldoc);
+
+            // 
             var result = new StringBuilder(xmldoc.Length);
             var settings = new XmlReaderSettings
             {
@@ -352,6 +376,9 @@ namespace Peachpie.LanguageServer
                                 case "remarks":
                                     result.Append("\n\n**Remarks:**\n");
                                     break;
+                                case "para":
+                                    result.Append("\n\n");
+                                    break;  // continue
                                 case "returns":
                                     result.Append("\n\n**Returns:**\n");
                                     break;
