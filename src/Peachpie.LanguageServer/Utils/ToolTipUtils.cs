@@ -384,6 +384,7 @@ namespace Peachpie.LanguageServer
                                     break;
                                 case "c":
                                     result.AppendFormat("**{0}**", xml.ReadInnerXml());
+                                    skipped = true;
                                     break;
                                 case "paramref":
                                     if (xml.HasAttributes)
@@ -391,6 +392,7 @@ namespace Peachpie.LanguageServer
                                     break;
                                 case "code":
                                     result.AppendFormat("```\n{0}```\n", xml.ReadInnerXml());
+                                    skipped = true;
                                     break;
                                 case "see":
                                     if (xml.HasAttributes)
@@ -398,7 +400,10 @@ namespace Peachpie.LanguageServer
                                     break;
                                 case "a":
                                     if (xml.HasAttributes)
+                                    {
                                         result.AppendFormat("({1})[{0}]", xml.GetAttribute("href"), xml.ReadInnerXml());
+                                        skipped = true;
+                                    }
                                     break;
                                 default:
                                     xml.Skip();
