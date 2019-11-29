@@ -377,6 +377,8 @@ namespace Peachpie.LanguageServer
                                     result.Append("\n\n**Remarks:**\n");
                                     break;
                                 case "para":
+                                case "p":
+                                case "br":
                                     result.Append("\n\n");
                                     break;  // continue
                                 case "returns":
@@ -405,6 +407,7 @@ namespace Peachpie.LanguageServer
                                         skipped = true;
                                     }
                                     break;
+                                // TODO: table, thead, tr, td
                                 default:
                                     xml.Skip();
                                     skipped = true; // do not call Read()!

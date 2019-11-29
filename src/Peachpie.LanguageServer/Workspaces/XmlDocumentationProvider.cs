@@ -9,6 +9,7 @@ using System.Threading;
 using System.Xml.Linq;
 using System.Xml;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Peachpie.LanguageServer.Workspaces
 {
@@ -72,15 +73,38 @@ namespace Peachpie.LanguageServer.Workspaces
 
                         try
                         {
-                            var doc = GetXDocument(cancellationToken);
-                            foreach (var e in doc.Descendants("member"))
+                            //var doc = GetXDocument(cancellationToken);
+                            //foreach (var e in doc.Descendants("member"))
+                            //{
+                            //    if (e.Attribute("name") != null)
+                            //    {
+                            //        using var reader = e.CreateReader();
+                            //        reader.MoveToContent();
+                            //        _docComments[e.Attribute("name").Value] = reader.ReadInnerXml();
+                            //    }
+                            //}
+
+                            // just cut the <member> elements from XML (there are invalid tags in netstandard.xml so we don't parse XML here) // how do they do it in other IDEs????
+                            var xml = new StreamReader(GetSourceStream(cancellationToken)).ReadToEnd();
+                            int from = 0;
+                            for (; ; )
                             {
-                                if (e.Attribute("name") != null)
+                                from = xml.IndexOf("<member ", from);
+                                if (from < 0) break;
+
+                                var to = xml.IndexOf("</member>", from);
+                                if (to < 0) break;
+
+                                var match = new Regex("name=\"([^\\\"]+)\"[^>]*>", RegexOptions.CultureInvariant).Match(xml, from, to - from);
+                                if (match.Success)
                                 {
-                                    using var reader = e.CreateReader();
-                                    reader.MoveToContent();
-                                    _docComments[e.Attribute("name").Value] = reader.ReadInnerXml();
+                                    var name = match.Groups[1].Value;
+                                    from = match.Index + match.Length;  // end of <member ...> element
+                                    _docComments[name] = xml.Substring(from, to - from); // inner xml
                                 }
+
+                                //
+                                from = to;
                             }
                         }
                         catch (Exception)
@@ -96,6 +120,13 @@ namespace Peachpie.LanguageServer.Workspaces
         private static readonly XmlReaderSettings s_xmlSettings = new XmlReaderSettings()
         {
             DtdProcessing = DtdProcessing.Prohibit,
+            CheckCharacters = false,
+            IgnoreComments = true,
+            ValidationFlags = System.Xml.Schema.XmlSchemaValidationFlags.None,
+            IgnoreWhitespace = true,
+            IgnoreProcessingInstructions = true,
+            ConformanceLevel = ConformanceLevel.Auto,
+            CloseInput = true,
         };
 
         //private sealed class ContentBasedXmlDocumentationProvider : XmlDocumentationProvider
