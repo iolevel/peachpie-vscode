@@ -8,6 +8,7 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 - go to definition support
 - tooltips with detailed summary and remarks
+- tooltips for .NET classes and methods
 - styled tooltips
 
 ### 0.9.600
