@@ -1,49 +1,40 @@
-# PeachPie for Visual Studio Code
+# PeachPie Compiler for Visual Studio Code
 
-This is the official extension of PeachPie for Visual Studio Code. It integrates the PHP compiler to .NET into VSCode, automatically downloading the required dependencies and allowing for a comfortable development experience with PeachPie.
+Welcome to the official extension of [PeachPie Compiler](https://www.peachpie.io/) - the PHP language compiler for .NET.
 
-> Please note that PeachPie compiler is still a work in progress. Therefore, some functionalities are not yet supported. For an updated list of supported constructs, please see [our roadmap](https://docs.peachpie.io/roadmap/).
+The extension runs the compiler analysis on background and extends the editor; providing PHP code diagnostics, enabling debugging, and helping with running the PHP code on .NET.
 
-![PeachPie for VS Code](images/tEDLQt.gif)
+### New Project
 
-## Features
+Quickly create the project file for PHP on .NET within Visual Studio Code. For more information see [Get Started](https://www.peachpie.io/getstarted).
 
-* Adds 'Create Project' command directly in Visual Studio Code
-* Automatically downloads PeachPie dependencies
-* Automatically enables the C# extension, if already installed
-* Enables breakpoints in .php files
-* Underlining of syntax errors
-* PeachPie Diagnostics underlining missing or not yet implemented functions
+![New Project Command](images/new-peachpie-project.gif)
 
-*'Create Project' with PeachPie* 
-![Create Project Command](images/create-project.png)
+Go to VSCode's `Command Palette` and create the project. The command restores required .NET dependencies and initializes `tasks.json` for you.
 
-*Adding breakpoints in .php files*
-![Create Project Command](images/breakpoint.png)
+### Diagnostics
 
-*Debugging PHP in VSCode*
-![Create Project Command](images/debug.png)
+Once the project is created, compiler analysis runs on background providing list of problems within the entire workspace.
 
-*Syntax error highlighting*
-![Syntax error](images/syntax-error.png)
+![Compiler diagnostics](images/diagnostics.gif)
 
-*PeachPie Diagnostics*
-![Diagnostics](images/unresolved-diagnostics.png)
+### Rich Tooltips
 
-## Requirements
+Insights about resolved types and symbols are accessible through tooltips. It shows how the compiler sees types, and displays remarks and descriptions of resolved symbols.
 
-It is necessary to install the C# for Visual Studio Code extension first. Check out the extension in the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp) and download it directly in VSCode by typing the command `ext install csharp`.
+![Tooltips](images/tooltips.gif)
 
-## Known Issues
+### Debugging
 
-PeachPie compiler is a work in progress, and thus many functionalities are not yet supported. Please see the project's [repository](https://www.github.com/iolevel/peachpie) for limitations, supported constructs and specifications.
+Code runs on .NET CLR; taking advantage of its debugger and related features.
 
------------------------------------------------------------------------------------------------------------
+- Put breakpoints and step through the code.
+- Check *Output* panel for runtime event and warnings.
+- Watch call stack, inspect variables, watch locals.
 
-### For more information
+## Remarks
 
-For more information, please visit:
-* [The project website](http://www.peachpie.io/)
-* [The GitHub repository](https://github.com/peachpiecompiler/peachpie)
+- [.NET Core SDK](https://dotnet.microsoft.com/download) is required.
+- [C# for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp) is required.
 
-**Enjoy!**
+*PeachPie is a work in progress. Please see the [project repository](https://www.github.com/iolevel/peachpie) for issues or for ways how to contribute. Visit the [project website](https://www.peachpie.io/) for more information.*

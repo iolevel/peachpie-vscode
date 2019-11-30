@@ -6,10 +6,10 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ### 0.9.601
 
-- go to definition support
 - tooltips with detailed summary and remarks
 - tooltips for .NET classes and methods
 - styled tooltips
+- go to symbol location (go to definition)
 
 ### 0.9.600
 
