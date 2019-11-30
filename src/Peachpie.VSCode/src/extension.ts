@@ -25,11 +25,11 @@ export async function activate(context: vscode.ExtensionContext) {
         channel,
 
         vscode.commands.registerCommand('peachpie.createconsole', async () => {
-            await createTemplate("console.msbuildproj");
+            await createTemplate("console");
         }),
 
         vscode.commands.registerCommand('peachpie.createlibrary', async () => {
-            await createTemplate("library.msbuildproj");
+            await createTemplate("library");
         }),
 
         startLanguageServer(context)
@@ -171,15 +171,16 @@ async function createTemplate(templatename: string) {
         return;
     }
 
-    // const templatename = "console.msbuildproj"
+    // const templatename = "console"
+    const templatefilename = templatename + ".msbuildproj"
 
     // Create .msbuildproj project file:
-    let projectPath = path.join(rootPath, templatename);
+    let projectPath = path.join(rootPath, templatefilename);
     showInfo(`Creating '${templatename}' ...`);
     if (fs.existsSync(projectPath)) {
         showInfo(`Warning: project file already exists, won't be created.`);
     } else {
-        if (await createProjectFile(projectPath, templatename)) {
+        if (await createProjectFile(projectPath, templatefilename)) {
             showInfo("Project file created successfully.");
         } else {
             showError("Error in creating project file.\n");
@@ -189,7 +190,10 @@ async function createTemplate(templatename: string) {
 
     // Create or update .tasks.json and .launch.json
     showInfo("Configuring build and debugging in 'tasks.json' and 'launch.json' ...");
-    let isTasksSuccess = (await configureTasks()) && (await configureLaunch());
+    let isTasksSuccess =
+        await configureTasks() &&
+        (templatename != "console" || await configureLaunch());
+    
     if (isTasksSuccess) {
         showInfo("Build tasks successfully configured.\n");
     } else {
