@@ -16,6 +16,7 @@ using Microsoft.Build.Logging;
 using Microsoft.CodeAnalysis.Text;
 using System.Text;
 using Peachpie.LanguageServer.Workspaces;
+using System.Globalization;
 
 namespace Peachpie.LanguageServer
 {
@@ -100,7 +101,9 @@ namespace Peachpie.LanguageServer
                 // TODO: Get from MSBuild
                 string projectName = Path.GetFileNameWithoutExtension(projectFile);
 
-                var syntaxTrees = ParseSourceFiles(projectInstance);
+                var encoding = TryParseEncodingName(projectInstance.GetPropertyValue("CodePage")) ?? Encoding.UTF8;
+
+                var syntaxTrees = ParseSourceFiles(projectInstance, encoding);
 
                 var compilation = PhpCompilation.Create(
                     projectName,
@@ -108,7 +111,7 @@ namespace Peachpie.LanguageServer
                     references: metadataReferences,
                     options: options);
 
-                return new ProjectHandler(compilation, projectInstance);
+                return new ProjectHandler(compilation, projectInstance, encoding);
             }
             catch (Exception)
             {
@@ -177,6 +180,43 @@ namespace Peachpie.LanguageServer
                 project.SetProperty("InnerTargets", HelperReferenceReturnTarget);
                 project.ReevaluateIfNecessary();
             }
+        }
+
+        /// <summary>
+        /// Extends support for encoding names in additon to codepages.
+        /// </summary>
+        static Encoding TryParseEncodingName(string arg)
+        {
+            if (!string.IsNullOrEmpty(arg))
+            {
+                try
+                {
+                    var encoding = Encoding.GetEncoding(arg);
+                    if (encoding != null)
+                    {
+                        return encoding;
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                // default behavior:
+                if (long.TryParse(arg, NumberStyles.None, CultureInfo.InvariantCulture, out var codepage) && codepage > 0)
+                {
+                    try
+                    {
+                        return Encoding.GetEncoding((int)codepage);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+
+            //
+            return null;
         }
 
         private static async Task<BuildResult> ResolveReferencesAsync(Project project)
@@ -267,7 +307,7 @@ namespace Peachpie.LanguageServer
             }
         }
 
-        private static PhpSyntaxTree[] ParseSourceFiles(ProjectInstance projectInstance)
+        private static PhpSyntaxTree[] ParseSourceFiles(ProjectInstance projectInstance, Encoding encoding)
         {
             var sourceFiles = projectInstance
                 .GetItems("Compile")
@@ -285,7 +325,7 @@ namespace Peachpie.LanguageServer
                 }
                 else
                 {
-                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(SourceText.From(File.OpenRead(path), Encoding.UTF8), PhpParseOptions.Default, PhpParseOptions.Default, path);
+                    syntaxTrees[i] = PhpSyntaxTree.ParseCode(SourceText.From(File.OpenRead(path), encoding), PhpParseOptions.Default, PhpParseOptions.Default, path);
                 }
             });
 

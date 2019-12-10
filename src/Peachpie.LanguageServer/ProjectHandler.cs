@@ -41,15 +41,18 @@ namespace Peachpie.LanguageServer
 
         public ProjectInstance BuildInstance { get; }
 
+        public Encoding SourceEncoding { get; }
+
         public string RootPath => PathUtils.NormalizePath(BuildInstance.Directory);
 
         public event EventHandler<DocumentDiagnosticsEventArgs> DocumentDiagnosticsChanged;
 
-        public ProjectHandler(PhpCompilation compilation, ProjectInstance buildInstance)
+        public ProjectHandler(PhpCompilation compilation, ProjectInstance buildInstance, Encoding encoding)
         {
             BuildInstance = buildInstance;
             _diagnosticBroker = new CompilationDiagnosticBroker(HandleCompilationDiagnostics);
             _diagnosticBroker.UpdateCompilation(compilation);
+            SourceEncoding = encoding ?? Encoding.UTF8;
         }
 
         public void Initialize()
@@ -67,7 +70,7 @@ namespace Peachpie.LanguageServer
 
         public void UpdateFile(string path, string text)
         {
-            var syntaxTree = PhpSyntaxTree.ParseCode(SourceText.From(text, Encoding.UTF8), PhpParseOptions.Default, PhpParseOptions.Default, path);
+            var syntaxTree = PhpSyntaxTree.ParseCode(SourceText.From(text, SourceEncoding), PhpParseOptions.Default, PhpParseOptions.Default, path);
             if (syntaxTree.Diagnostics.Length > 0)
             {
                 _filesWithParserErrors.Add(path);
