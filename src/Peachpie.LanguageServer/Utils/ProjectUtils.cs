@@ -96,12 +96,19 @@ namespace Peachpie.LanguageServer
                 var options = new PhpCompilationOptions(
                     outputKind: OutputKind.DynamicallyLinkedLibrary,
                     baseDirectory: PathUtils.NormalizePath(Path.GetDirectoryName(projectFile)),
+                    specificDiagnosticOptions: null,
                     sdkDirectory: null);
 
                 // TODO: Get from MSBuild
                 string projectName = Path.GetFileNameWithoutExtension(projectFile);
 
                 var encoding = TryParseEncodingName(projectInstance.GetPropertyValue("CodePage")) ?? Encoding.UTF8;
+
+                var nowarn = projectInstance.GetPropertyValue("NoWarn");
+                if (nowarn != null)
+                {
+                    options = options.WithSpecificDiagnosticOptions(ParseNoWarn(nowarn));
+                }
 
                 var syntaxTrees = ParseSourceFiles(projectInstance, encoding);
 
@@ -116,6 +123,17 @@ namespace Peachpie.LanguageServer
             catch (Exception)
             {
                 return null;
+            }
+        }
+
+        private static IEnumerable<KeyValuePair<string, ReportDiagnostic>> ParseNoWarn(string nowarn)
+        {
+            if (!string.IsNullOrEmpty(nowarn))
+            {
+                foreach (var warn in nowarn.Split(new char[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    yield return new KeyValuePair<string, ReportDiagnostic>(warn.Trim(), ReportDiagnostic.Hidden);
+                }
             }
         }
 

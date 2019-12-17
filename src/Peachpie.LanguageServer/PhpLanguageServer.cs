@@ -337,7 +337,6 @@ PeachPie Language Server
             {
                 Uri = new Uri(e.DocumentPath).AbsoluteUri,
                 Diagnostics = e.Diagnostics
-                    .Where(diagnostic => diagnostic.Severity != DiagnosticSeverity.Hidden)
                     .Select(diagnostic =>
                     new Protocol.Diagnostic()
                     {

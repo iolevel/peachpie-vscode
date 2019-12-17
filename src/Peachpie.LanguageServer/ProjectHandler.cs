@@ -133,11 +133,24 @@ namespace Peachpie.LanguageServer
             return ToolTipUtils.ObtainToolTip(compilation, filepath, line, character);
         }
 
+        bool IsHidden(Diagnostic d)
+        {
+            var options = Compilation.Options.SpecificDiagnosticOptions;
+
+            return
+                d.IsSuppressed ||
+                d.Severity == DiagnosticSeverity.Hidden ||
+                (options != null && options.TryGetValue(d.Id, out var report) && (report == ReportDiagnostic.Suppress || report == ReportDiagnostic.Hidden));
+        }
+
         private void HandleCompilationDiagnostics(IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
         {
             var errorFiles = new HashSet<string>();
+            var options = Compilation.Options.SpecificDiagnosticOptions;
 
-            var fileGroups = diagnostics.GroupBy(diagnostic => diagnostic.Location.SourceTree.FilePath);
+            var fileGroups = diagnostics
+                .Where(d => !IsHidden(d))
+                .GroupBy(diagnostic => diagnostic.Location.SourceTree.FilePath);
             foreach (var fileDiagnostics in fileGroups)
             {
                 errorFiles.Add(fileDiagnostics.Key);
