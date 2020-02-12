@@ -315,7 +315,7 @@ namespace Peachpie.LanguageServer
             }
 
             // description
-            return new ToolTipInfo("<?php //" + kind + "\n" + result.ToString(), description);
+            return new ToolTipInfo("<?php // " + kind + "\n" + result.ToString(), description);
         }
 
         static string TrimLines(string text)
