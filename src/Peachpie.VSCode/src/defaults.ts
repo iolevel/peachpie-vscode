@@ -10,7 +10,8 @@ export var defaultTasksJson =
         {
             "taskName": "build",
             "args": [
-                "${workspaceRoot}"
+              "${workspaceRoot}",
+              "-p:GenerateFullPaths=true"
             ],
             "isBuildCommand": true,
             "problemMatcher": "$msCompile"
