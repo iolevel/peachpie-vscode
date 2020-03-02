@@ -4,9 +4,14 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ## Extension updates:
 
+### 0.9.900
+
+- updated code analysis
+- updated peachpie version
+
 ### 0.9.800
 
-- updated compiler code analysis
+- updated code analysis
 
 ### 0.9.601
 
