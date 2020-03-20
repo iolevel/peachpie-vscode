@@ -4,6 +4,10 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ## Extension updates:
 
+### 0.9.920
+
+- updated code analysis, fixes issues on dotnet 3.1.200
+
 ### 0.9.900
 
 - updated code analysis
