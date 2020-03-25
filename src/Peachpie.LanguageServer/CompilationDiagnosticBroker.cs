@@ -41,11 +41,18 @@ namespace Peachpie.LanguageServer
                 && (_diagnosticTask == null || _diagnosticTask.IsCompleted))
             {
                 var analysedCompilation = this.Compilation;
-                _diagnosticTask = analysedCompilation.BindAndAnalyseTask();
+                try
+                {
+                    _diagnosticTask = analysedCompilation.BindAndAnalyseTask();
 
-                var diagnostics = await _diagnosticTask;
-                this.LastAnalysedCompilation = analysedCompilation;
-                _resultHandler(diagnostics);
+                    var diagnostics = await _diagnosticTask;
+                    this.LastAnalysedCompilation = analysedCompilation;
+                    _resultHandler(diagnostics);
+                }
+                catch (DllNotFoundException ex)
+                {
+
+                }
 
                 // If the compilation was changed during the analysis, attempt to run it again (with respect to the delay),
                 // as it was blocked by the previous condition
