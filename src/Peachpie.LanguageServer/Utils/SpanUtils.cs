@@ -36,7 +36,7 @@ namespace Peachpie.LanguageServer
 
         public static Protocol.Range AsRange(this FileLinePositionSpan span)
         {
-            return new Range(
+            return new Protocol.Range(
                 new Position(span.StartLinePosition.Line, span.StartLinePosition.Character),
                 new Position(span.EndLinePosition.Line, span.EndLinePosition.Character));
         }
