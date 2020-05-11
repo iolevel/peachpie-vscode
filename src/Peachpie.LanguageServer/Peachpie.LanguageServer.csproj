@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.9.970</Version>
+    <Version>0.9.981</Version>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyName>Peachpie.LanguageServer</AssemblyName>
     <LangVersion>latest</LangVersion>
