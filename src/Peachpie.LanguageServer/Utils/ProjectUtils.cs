@@ -95,7 +95,7 @@ namespace Peachpie.LanguageServer
 
                 var options = new PhpCompilationOptions(
                     outputKind: OutputKind.DynamicallyLinkedLibrary,
-                    baseDirectory: PathUtils.NormalizePath(Path.GetDirectoryName(projectFile)),
+                    baseDirectory: Path.GetDirectoryName(projectFile), // compilation expects platform-specific slashes (backslashes on windows)
                     specificDiagnosticOptions: null,
                     sdkDirectory: null);
 
