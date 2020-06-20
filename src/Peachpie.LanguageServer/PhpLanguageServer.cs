@@ -337,15 +337,14 @@ PeachPie Language Server
             {
                 Uri = new Uri(e.DocumentPath).AbsoluteUri,
                 Diagnostics = e.Diagnostics
-                    .Select(diagnostic =>
-                    new Protocol.Diagnostic()
+                    .Select(diagnostic => new Protocol.Diagnostic()
                     {
                         Range = diagnostic.Location.AsRange(),
                         Severity = ConvertSeverity(diagnostic.Severity),
                         Code = diagnostic.Id,
                         Source = "PeachPie",
                         Message = diagnostic.GetMessage(),
-                    }).ToArray()
+                    }),
             };
 
             _messageWriter.WriteNotification("textDocument/publishDiagnostics", diagnosticsParams);

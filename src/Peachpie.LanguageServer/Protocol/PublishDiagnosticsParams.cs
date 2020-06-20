@@ -13,6 +13,6 @@ namespace Peachpie.LanguageServer.Protocol
         public string Uri { get; set; }
 
         [JsonProperty("diagnostics")]
-        public Diagnostic[] Diagnostics { get; set; }
+        public IEnumerable<Diagnostic> Diagnostics { get; set; }
     }
 }

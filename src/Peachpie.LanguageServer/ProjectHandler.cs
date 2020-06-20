@@ -13,6 +13,7 @@ using Devsense.PHP.Syntax.Ast;
 using Devsense.PHP.Text;
 using Pchp.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using System.Collections.Concurrent;
 
 namespace Peachpie.LanguageServer
 {
@@ -33,9 +34,11 @@ namespace Peachpie.LanguageServer
 
         readonly CompilationDiagnosticBroker _diagnosticBroker;
 
-        readonly HashSet<string> _filesWithParserErrors = new HashSet<string>();
+        readonly ConcurrentDictionary<string, ImmutableArray<Diagnostic>> _parserDiagnostics
+            = new ConcurrentDictionary<string, ImmutableArray<Diagnostic>>(StringComparer.InvariantCultureIgnoreCase);
 
-        private HashSet<string> _filesWithSemanticDiagnostics = new HashSet<string>();
+        private HashSet<string> _filesWithSemanticDiagnostics
+            = new HashSet<string>();
 
         public PhpCompilation Compilation => _diagnosticBroker.Compilation;
 
@@ -57,51 +60,50 @@ namespace Peachpie.LanguageServer
 
         public void Initialize()
         {
-            // Initially populate _filesWithParserErrors and send the corresponding diagnostics
-            // (_filesWithSemanticDiagnostics will be updated by _diagnosticBroker)
+            // Initially populate _parserDiagnostics and send the corresponding diagnostics
+            // (_parserDiagnostics will be updated by _diagnosticBroker)
+
             var diagnostics = Compilation.GetParseDiagnostics();
-            foreach (var fileDiagnostics in diagnostics.GroupBy(diag => diag.Location.SourceTree.FilePath))
+            foreach (var fileDiagnostics in diagnostics.GroupBy(diag => diag.Location.SourceTree))
             {
-                string path = fileDiagnostics.Key;
-                _filesWithParserErrors.Add(path);
+                var path = fileDiagnostics.Key.FilePath;
+                _parserDiagnostics[path] = fileDiagnostics.ToImmutableArray();
+
                 OnDocumentDiagnosticsChanged(path, fileDiagnostics);
             }
         }
 
         public void UpdateFile(string path, string text)
         {
+            _parserDiagnostics.TryGetValue(path, out var previousDiagnostics);
+
             var syntaxTree = PhpSyntaxTree.ParseCode(SourceText.From(text, SourceEncoding), PhpParseOptions.Default, PhpParseOptions.Default, path);
-            if (syntaxTree.Diagnostics.Length > 0)
+
+            if (syntaxTree.Diagnostics.Length != 0)
             {
-                _filesWithParserErrors.Add(path);
+                _parserDiagnostics[path] = syntaxTree.Diagnostics;
+            }
+            else if (previousDiagnostics != null)
+            {
+                _parserDiagnostics.TryRemove(path, out _);
+            }
+
+            if (syntaxTree.Diagnostics.Length != 0 || previousDiagnostics != null)
+            {
+                // If there were any errors previously, send an empty set to remove them
                 OnDocumentDiagnosticsChanged(path, syntaxTree.Diagnostics);
             }
-            else
+
+            // Update the compilation
+            if (syntaxTree.Diagnostics.All(d => d.Severity != DiagnosticSeverity.Error) && _diagnosticBroker.Compilation != null)
             {
-                if (_filesWithParserErrors.Remove(path))
-                {
-                    // If there were any errors previously, send an empty set to remove them
-                    OnDocumentDiagnosticsChanged(path, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
-                }
+                var currentTree = _diagnosticBroker.Compilation.SyntaxTrees.FirstOrDefault(tree => tree.FilePath == path);
 
-                // Update in the compilation
-                if (_diagnosticBroker.Compilation != null)
-                {
-                    PhpCompilation updatedCompilation;
-                    var currentTree = _diagnosticBroker.Compilation.SyntaxTrees
-                        .OfType<PhpSyntaxTree>()
-                        .FirstOrDefault(tree => tree.FilePath == path);
-                    if (currentTree == null)
-                    {
-                        updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree);
-                    }
-                    else
-                    {
-                        updatedCompilation = (PhpCompilation)_diagnosticBroker.Compilation.ReplaceSyntaxTree(currentTree, syntaxTree);
-                    }
+                var updatedCompilation = currentTree == null
+                    ? (PhpCompilation)_diagnosticBroker.Compilation.AddSyntaxTrees(syntaxTree)
+                    : (PhpCompilation)_diagnosticBroker.Compilation.ReplaceSyntaxTree(currentTree, syntaxTree);
 
-                    _diagnosticBroker.UpdateCompilation(updatedCompilation);
-                }
+                _diagnosticBroker.UpdateCompilation(updatedCompilation);
             }
         }
 
@@ -143,24 +145,32 @@ namespace Peachpie.LanguageServer
                 (options != null && options.TryGetValue(d.Id, out var report) && (report == ReportDiagnostic.Suppress || report == ReportDiagnostic.Hidden));
         }
 
-        private void HandleCompilationDiagnostics(IEnumerable<Microsoft.CodeAnalysis.Diagnostic> diagnostics)
+        private void HandleCompilationDiagnostics(IEnumerable<Diagnostic> diagnostics)
         {
             var errorFiles = new HashSet<string>();
             var options = Compilation.Options.SpecificDiagnosticOptions;
 
             var fileGroups = diagnostics
                 .Where(d => !IsHidden(d))
-                .GroupBy(diagnostic => diagnostic.Location.SourceTree.FilePath);
+                .GroupBy(diagnostic => diagnostic.Location.SourceTree);
+
             foreach (var fileDiagnostics in fileGroups)
             {
-                errorFiles.Add(fileDiagnostics.Key);
-                OnDocumentDiagnosticsChanged(fileDiagnostics.Key, fileDiagnostics);
+                var file = fileDiagnostics.Key.FilePath;
+                
+                errorFiles.Add(file);
+
+                OnDocumentDiagnosticsChanged(
+                    file,
+                    _parserDiagnostics.TryGetValue(file, out var parsediag) ? parsediag.Concat(fileDiagnostics) : fileDiagnostics);
             }
 
             var cleared = _filesWithSemanticDiagnostics.Except(errorFiles);
             foreach (var file in cleared)
             {
-                OnDocumentDiagnosticsChanged(file, ImmutableArray<Microsoft.CodeAnalysis.Diagnostic>.Empty);
+                OnDocumentDiagnosticsChanged(
+                    file,
+                    _parserDiagnostics.TryGetValue(file, out var parsediag) ? parsediag : ImmutableArray<Diagnostic>.Empty);
             }
 
             _filesWithSemanticDiagnostics = errorFiles;
