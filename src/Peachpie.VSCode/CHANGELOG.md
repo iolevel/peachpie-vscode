@@ -4,7 +4,10 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ## Extension updates:
 
-### 0.9.990
+### 0.9.991
+
+- include diagnostic fixed on Windows
+- syntactic and semantic diagnostics reported together
 
 ### 0.9.980
 
