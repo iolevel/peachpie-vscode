@@ -98,6 +98,9 @@ namespace Peachpie.LanguageServer
                     case "textDocument/didClose":
                         // ignored
                         break;
+                    case "textDocument/didSave":
+                        // ignored
+                        break;
 
                     //
 
