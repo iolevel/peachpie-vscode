@@ -8,6 +8,7 @@ using Pchp.CodeAnalysis.Semantics;
 using Pchp.CodeAnalysis.Symbols;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -65,7 +66,18 @@ namespace Peachpie.LanguageServer
             var result = FindDefinition(compilation, filepath, line, character);
             if (result != null && result.Symbol != null)
             {
-                foreach (var loc in result.Symbol.Locations)
+                ImmutableArray<Location> location;
+
+                try
+                {
+                    location = result.Symbol.Locations;
+                }
+                catch
+                {
+                    yield break;    // location not impl.
+                }
+
+                foreach (var loc in location)
                 {
                     var pos = loc.GetLineSpan();
                     if (pos.IsValid)
@@ -95,12 +107,25 @@ namespace Peachpie.LanguageServer
                 return null;
             }
 
-            if (type.MetadataName == "PhpValue" || type.MetadataName == "PhpAlias") // TODO: helpers!!!
+            return type.SpecialType switch
             {
-                return null;    // "mixed", "&"
-            }
-
-            return type.Name;
+                SpecialType.System_Int32 => "int",
+                SpecialType.System_Int64 => "int",
+                SpecialType.System_Double => "float",
+                SpecialType.System_Boolean => "boolean",
+                SpecialType.System_String => "string",
+                SpecialType.System_Object => "object",
+                _ => type.MetadataName switch
+                {
+                    "PhpValue" => null,
+                    "PhpAlias" => "&",
+                    "PhpResource" => "resource",
+                    "PhpArray" => "array",
+                    "PhpString" => "string",
+                    // TODO: byte[]
+                    _ => type.Name,
+                }
+            };
         }
 
         /// <summary>
@@ -275,7 +300,7 @@ namespace Peachpie.LanguageServer
                     mask = resultVal.GetResultType(ctx);
                 }
 
-                if (mask != null)
+                if (mask.HasValue)
                 {
                     result.Append(": ");
                     result.Append(ctx.ToString(mask.Value));
@@ -398,7 +423,7 @@ namespace Peachpie.LanguageServer
                                     break;
                                 case "see":
                                     if (xml.HasAttributes)
-                                        result.AppendFormat("**{0}**", xml.GetAttribute("langword") ?? xml.GetAttribute("cref"));
+                                        result.AppendFormat("**{0}**", xml.GetAttribute("langword") ?? CrefToString(xml.GetAttribute("cref")));
                                     break;
                                 case "a":
                                     if (xml.HasAttributes)
@@ -424,6 +449,19 @@ namespace Peachpie.LanguageServer
 
             //
             return result.ToString().Trim();
+        }
+
+        static string CrefToString(string cref)
+        {
+            if (string.IsNullOrEmpty(cref))
+            {
+                return string.Empty;
+            }
+
+            int trim = Math.Max(cref.LastIndexOf(':'), cref.LastIndexOf('.'));
+            return trim > 0
+                ? cref.Substring(trim + 1)
+                : cref;
         }
     }
 }
