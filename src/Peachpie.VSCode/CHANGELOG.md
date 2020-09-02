@@ -4,6 +4,10 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ## Extension updates:
 
+### 1.0.0
+
+- update templates and compiler to `1.0.0-preview1`
+
 ### 0.9.991
 
 - include diagnostic fixed on Windows
