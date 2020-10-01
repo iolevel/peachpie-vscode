@@ -10,6 +10,8 @@ namespace Peachpie.LanguageServer
 {
     public static class EnvironmentUtils
     {
+        const string DOTNET_CLI_UI_LANGUAGE = "DOTNET_CLI_UI_LANGUAGE";
+
         public static string NetCoreRuntimePath { get; private set; }
 
         public static string MSBuildSDKsPath { get; private set; }
@@ -35,6 +37,11 @@ namespace Peachpie.LanguageServer
 
         private static async Task<string> GetNetCorePathAsync()
         {
+            // Ensure that we set the DOTNET_CLI_UI_LANGUAGE environment variable to "en-US" before
+            // running 'dotnet --info'. Otherwise, we may get localized results.
+            string originalCliLanguage = Environment.GetEnvironmentVariable(DOTNET_CLI_UI_LANGUAGE);
+            Environment.SetEnvironmentVariable(DOTNET_CLI_UI_LANGUAGE, "en-US");
+
             using (var process = new Process()
             {
                 StartInfo =
@@ -56,6 +63,10 @@ namespace Peachpie.LanguageServer
                 {
                     // no `dotnet`
                     return null;
+                }
+                finally
+                {
+                    Environment.SetEnvironmentVariable(DOTNET_CLI_UI_LANGUAGE, originalCliLanguage);
                 }
 
                 var output = await process.StandardOutput.ReadToEndAsync();
@@ -90,6 +101,25 @@ namespace Peachpie.LanguageServer
             }
 
             taskSource.SetException(new IOException("Cannot obtain the base path of .NET Core"));
+        }
+
+        public static Dictionary<string, string> GetCoreGlobalProperties(string projectPath, string toolsPath)
+        {
+            string solutionDir = Path.GetDirectoryName(projectPath);
+            string extensionsPath = toolsPath;
+            string sdksPath = MSBuildSDKsPath;
+            string roslynTargetsPath = Path.Combine(toolsPath, "Roslyn");
+
+            return new Dictionary<string, string>
+            {
+                { "SolutionDir", solutionDir },
+                { "MSBuildExtensionsPath", extensionsPath },
+                { "MSBuildSDKsPath", sdksPath },
+                { "RoslynTargetsPath", roslynTargetsPath },
+                { "DesignTimeBuild", "true" },
+                { "SkipCompilerExecution", "true" },
+                { "ProvideCommandLineArgs", "true", },
+            };
         }
     }
 }
