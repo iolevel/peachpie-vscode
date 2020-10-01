@@ -17,6 +17,7 @@ using Microsoft.CodeAnalysis.Text;
 using System.Text;
 using Peachpie.LanguageServer.Workspaces;
 using System.Globalization;
+using Peachpie.LanguageServer.Utils;
 
 namespace Peachpie.LanguageServer
 {
@@ -37,7 +38,7 @@ namespace Peachpie.LanguageServer
 
         private static SemaphoreSlim _buildManagerSemaphore = new SemaphoreSlim(1);
 
-        public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory)
+        public static async Task<ProjectHandler> TryGetFirstPhpProjectAsync(string directory, ILogTarget log)
         {
             foreach (var solutionPath in Directory.GetFiles(directory, SolutionNamePattern))
             {
@@ -46,7 +47,13 @@ namespace Peachpie.LanguageServer
                 {
                     foreach (var project in solution.ProjectsInOrder)
                     {
-                        var projectHandler = await TryGetPhpProjectAsync(project.AbsolutePath);
+                        if (project.ProjectType != SolutionProjectType.KnownToBeMSBuildFormat ||
+                            project.RelativePath.EndsWith(".csproj"))
+                        {
+                            continue;
+                        }
+
+                        var projectHandler = await TryGetPhpProjectAsync(project.AbsolutePath, log);
                         if (projectHandler != null)
                         {
                             return projectHandler;
@@ -57,7 +64,7 @@ namespace Peachpie.LanguageServer
 
             foreach (var projectPath in Directory.GetFiles(directory, ProjectNamePattern, SearchOption.AllDirectories))
             {
-                var projectHandler = await TryGetPhpProjectAsync(projectPath);
+                var projectHandler = await TryGetPhpProjectAsync(projectPath, log);
                 if (projectHandler != null)
                 {
                     return projectHandler;
@@ -67,7 +74,7 @@ namespace Peachpie.LanguageServer
             return null;
         }
 
-        private static async Task<ProjectHandler> TryGetPhpProjectAsync(string projectFile)
+        private static async Task<ProjectHandler> TryGetPhpProjectAsync(string projectFile, ILogTarget log)
         {
             try
             {
@@ -90,6 +97,7 @@ namespace Peachpie.LanguageServer
                 if (metadataReferences.Length == 0)
                 {
                     // dotnet restore hasn't run yet
+                    log?.LogMessage($"{Path.GetFileName(projectFile)}: not restored, run 'dotnet restore` first.");
                     return null;
                 }
 
@@ -120,8 +128,9 @@ namespace Peachpie.LanguageServer
 
                 return new ProjectHandler(compilation, projectInstance, encoding);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                log?.LogMessage($"{Path.GetFileName(projectFile)}: {ex.Message}");
                 return null;
             }
         }

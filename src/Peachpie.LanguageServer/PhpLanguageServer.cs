@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Pchp.CodeAnalysis;
 using Peachpie.LanguageServer.Protocol;
+using Peachpie.LanguageServer.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Peachpie.LanguageServer
 {
-    internal class PhpLanguageServer
+    internal class PhpLanguageServer : ILogTarget
     {
         private const string DiagnosticSource = "peachpie";
 
@@ -146,7 +147,7 @@ namespace Peachpie.LanguageServer
 
             try
             {
-                newProject = await ProjectUtils.TryGetFirstPhpProjectAsync(_rootPath);
+                newProject = await ProjectUtils.TryGetFirstPhpProjectAsync(_rootPath, this);
             }
             catch (Exception ex)
             {
@@ -369,5 +370,7 @@ PeachPie Language Server
                     return null;
             }
         }
+
+        void ILogTarget.LogMessage(string message) => this.SendLogMessage(message);
     }
 }
