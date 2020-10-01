@@ -6,7 +6,8 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ### 1.0.0
 
-- update templates and compiler to `1.0.0-preview1`
+- update templates and compiler to `1.0.0-preview2`
+- known issue: not working with .NET Sdk 5.0 rc1
 
 ### 0.9.991
 
