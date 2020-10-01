@@ -117,8 +117,8 @@ namespace Peachpie.LanguageServer
                 { "MSBuildSDKsPath", sdksPath },
                 { "RoslynTargetsPath", roslynTargetsPath },
                 { "DesignTimeBuild", "true" },
-                { "SkipCompilerExecution", "true" },
-                { "ProvideCommandLineArgs", "true", },
+                //{ "SkipCompilerExecution", "true" },
+                //{ "ProvideCommandLineArgs", "true" },
             };
         }
     }
