@@ -1,8 +1,8 @@
-﻿<Project Sdk="Peachpie.NET.Sdk/1.0.0-preview2">
+﻿<Project Sdk="Peachpie.NET.Sdk/1.0.0-preview4">
 
   <PropertyGroup>
     <OutputType>exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net50</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

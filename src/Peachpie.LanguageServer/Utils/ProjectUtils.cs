@@ -18,6 +18,8 @@ using System.Text;
 using Peachpie.LanguageServer.Workspaces;
 using System.Globalization;
 using Peachpie.LanguageServer.Utils;
+using System.Diagnostics;
+using Microsoft.Build.Utilities;
 
 namespace Peachpie.LanguageServer
 {
@@ -97,7 +99,7 @@ namespace Peachpie.LanguageServer
                 if (metadataReferences.Length == 0)
                 {
                     // dotnet restore hasn't run yet
-                    log?.LogMessage($"{Path.GetFileName(projectFile)}: not restored, run 'dotnet restore` first.");
+                    log?.LogMessage($"{Path.GetFileName(projectFile)}: could not be built; ");
                     return null;
                 }
 
@@ -160,24 +162,30 @@ namespace Peachpie.LanguageServer
 
         private static Project LoadProject(string projectFile)
         {
-            var properties = new Dictionary<string, string>()
-            {
-                // In order not to build the dependent projects
-                { "DesignTimeBuild", "true" },
-            };
-
+            var toolsPath = EnvironmentUtils.NetCoreRuntimePath;
+            var globalProperties = EnvironmentUtils.GetCoreGlobalProperties(projectFile, toolsPath);
+            var projectCollection = new ProjectCollection(globalProperties);
+            
+            projectCollection.AddToolset(new Toolset(ToolLocationHelper.CurrentToolsVersion, toolsPath, projectCollection, string.Empty));
+            
             Environment.SetEnvironmentVariable("MSBuildExtensionsPath", EnvironmentUtils.NetCoreRuntimePath);
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", EnvironmentUtils.MSBuildSDKsPath);
 
             // TODO: Make properly async
             var fileContents = new StringReader(File.ReadAllText(projectFile)); // read {projectFile} separately in order to avoid locking it on FS
             var xmlReader = XmlReader.Create(fileContents, XmlSettings);
-            var projectCollection = new ProjectCollection();
             var projectRoot = ProjectRootElement.Create(xmlReader, projectCollection);
 
             // In order to have it accessible from MSBuild
             projectRoot.FullPath = projectFile;
 
+            var properties = new Dictionary<string, string>()
+            {
+                // In order not to build the dependent projects
+                { "DesignTimeBuild", "true" },
+            };
+
+            //Project project = projectCollection.LoadProject(projectPath);
             return new Project(projectRoot, properties, toolsVersion: null, projectCollection: projectCollection);
         }
 
