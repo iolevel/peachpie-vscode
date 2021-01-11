@@ -4,6 +4,11 @@ The extension uses corresponding version of the [PeachPie compiler](https://www.
 
 ## Extension updates:
 
+### 1.0.5
+
+- updates templates and code analysis to `1.0.0-preview5`
+- **requires .NET 5.0**
+
 ### 1.0.4
 
 - update templates and compiler to `1.0.0-preview4`

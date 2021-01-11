@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.0.0-preview4</Version>
+    <Version>1.0.0-preview5</Version>
     <TargetFramework>net50</TargetFramework>
     <AssemblyName>Peachpie.LanguageServer</AssemblyName>
     <LangVersion>latest</LangVersion>
