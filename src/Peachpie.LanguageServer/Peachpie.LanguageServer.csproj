@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.0.0-preview5</Version>
-    <TargetFramework>net50</TargetFramework>
+    <Version>1.0.0</Version>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>Peachpie.LanguageServer</AssemblyName>
     <LangVersion>latest</LangVersion>
     <OutputType>Exe</OutputType>
@@ -17,15 +17,15 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Peachpie.CodeAnalysis" Version="$(Version)" />
-    <PackageReference Include="Microsoft.Build" Version="16.6.0-*" />
-    <PackageReference Include="Microsoft.Build.Runtime" Version="16.6.0-*" />
-    <PackageReference Include="Microsoft.Build.NuGetSdkResolver" Version="5.1.0-*" />
+    <PackageReference Include="Microsoft.Build" Version="16.9.0-*" />
+    <PackageReference Include="Microsoft.Build.Runtime" Version="16.9.0-*" />
+    <PackageReference Include="Microsoft.Build.NuGetSdkResolver" Version="5.9.0-*" />
     <!--PackageReference Include="Nuget.Common" Version="5.7.0" /-->
     <!--PackageReference Include="Nuget.Configuration" Version="5.7.0" /-->
     <!--PackageReference Include="Nuget.Frameworks" Version="5.7.0" /-->
     <!--PackageReference Include="Nuget.LibraryModel" Version="5.7.0" /-->
     <!--PackageReference Include="Nuget.Packaging" Version="5.7.0" /-->
-    <PackageReference Include="Nuget.Packaging.Core" Version="5.5.0" />
+    <PackageReference Include="Nuget.Packaging.Core" Version="5.9.0" />
     <!--PackageReference Include="Nuget.ProjectModel" Version="5.7.0" /-->
     <!--PackageReference Include="Nuget.Versioning" Version="5.7.0" /-->
   </ItemGroup>
