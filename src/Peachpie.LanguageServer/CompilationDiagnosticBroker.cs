@@ -49,7 +49,7 @@ namespace Peachpie.LanguageServer
                     this.LastAnalysedCompilation = analysedCompilation;
                     _resultHandler(diagnostics);
                 }
-                catch (DllNotFoundException ex)
+                catch (DllNotFoundException)
                 {
 
                 }

@@ -141,7 +141,7 @@ namespace Peachpie.LanguageServer.Protocol
         /// The server provides support to resolve additional information for a completion item.
         /// </summary>
         [JsonProperty("resolveProvider")]
-        public bool ResolveProvider;
+        public bool ResolveProvider { get; set; }
 
         /// <summary>
         /// The characters that trigger completion automatically.
