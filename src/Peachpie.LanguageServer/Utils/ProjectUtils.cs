@@ -170,6 +170,7 @@ namespace Peachpie.LanguageServer
             
             Environment.SetEnvironmentVariable("MSBuildExtensionsPath", EnvironmentUtils.NetCoreRuntimePath);
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", EnvironmentUtils.MSBuildSDKsPath);
+            Environment.SetEnvironmentVariable("MSBuildEnableWorkloadResolver", bool.FalseString); // NET 6.0 +
 
             // TODO: Make properly async
             var fileContents = new StringReader(File.ReadAllText(projectFile)); // read {projectFile} separately in order to avoid locking it on FS

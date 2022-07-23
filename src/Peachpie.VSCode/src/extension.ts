@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 
 import { defaultTasksJson, defaultLaunchJson } from './defaults';
-import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node';
 import { workspace } from "vscode";
 
 import { XMLHttpRequest, Document } from 'xmlhttprequest';

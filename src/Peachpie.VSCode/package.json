@@ -3,7 +3,7 @@
   "displayName": "PeachPie for Visual Studio Code",
   "description": "Visual Studio Code extension for PeachPie - the PHP compiler for .NET and .NET Core.",
   "icon": "icons/peachpie-vscode.png",
-  "version": "1.0.8",
+  "version": "1.0.22",
   "publisher": "iolevel",
   "preview": true,
   "license": "Apache-2.0",
@@ -17,7 +17,7 @@
     "url": "https://github.com/peachpiecompiler/peachpie.git"
   },
   "engines": {
-    "vscode": "^1.33.0",
+    "vscode": "^1.63.1",
     "node": "^8.11.0"
   },
   "categories": [
@@ -85,24 +85,26 @@
     }
   ],
   "scripts": {
-    "vscode:prepublish": "dotnet publish ../Peachpie.LanguageServer --configuration Release --output ../Peachpie.VSCode/out/server & tsc -p ./",
-    "compile": "dotnet publish ../Peachpie.LanguageServer --output ../Peachpie.VSCode/out/server & tsc -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/src/extension.js --external:vscode --format=cjs --platform=node",
+    "vscode:prepublish": "dotnet publish ../Peachpie.LanguageServer --configuration Release --output ../Peachpie.VSCode/out/server & npm run -S esbuild-base -- --minify",
+    "compile": "dotnet publish ../Peachpie.LanguageServer --output ../Peachpie.VSCode/out/server & npm run -S esbuild-base -- --sourcemap",
+    "postinstall": ""
   },
   "devDependencies": {
-    "typescript": "^3.5.3",
-    "vscode": "^1.1.35",
-    "mocha": "^2.3.3",
-    "@types/node": "^10.14.12",
-    "@types/mocha": "^5.2.7"
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^10.17.60",
+    "@types/vscode": "^1.63.1",
+    "esbuild": "^0.14.48",
+    "mocha": "^9.2.2",
+    "typescript": "^4.7.4"
   },
   "dependencies": {
-    "vscode-languageclient": "^5.1.0",
-    "vscode-languageserver": "^5.1.0",
+    "vscode-languageclient": "^7.0.0",
+    "vscode-languageserver": "^7.0.0",
     "vscode-nls": "^3.2.2",
     "xmldom": "^0.6.0",
     "xpath": "^0.0.27",
-    "open": "^6.0.0",
+    "open": "^8.4.0",
     "xmlhttprequest": "^1.8.0"
   }
 }
